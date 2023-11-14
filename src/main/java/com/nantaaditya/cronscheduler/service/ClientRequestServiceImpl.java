@@ -9,6 +9,7 @@ import com.nantaaditya.cronscheduler.model.response.ClientResponseDTO;
 import com.nantaaditya.cronscheduler.repository.ClientRequestRepository;
 import com.nantaaditya.cronscheduler.repository.JobDetailRepository;
 import com.nantaaditya.cronscheduler.repository.JobExecutorRepository;
+import com.nantaaditya.cronscheduler.repository.JobTriggerRepository;
 import com.nantaaditya.cronscheduler.util.CopyUtil;
 import com.nantaaditya.cronscheduler.util.QuartzUtil;
 import java.util.List;
@@ -36,6 +37,8 @@ public class ClientRequestServiceImpl implements ClientRequestService {
 
   private final JobExecutorRepository jobExecutorRepository;
 
+  private final JobTriggerRepository jobTriggerRepository;
+
   private final QuartzUtil quartzUtil;
 
   private final TransactionalOperator transactionalOperator;
@@ -53,10 +56,10 @@ public class ClientRequestServiceImpl implements ClientRequestService {
         .flatMap(tuples -> clientRequestRepository.save(tuples.getT1().update(request))
             .flatMap(clientRequest -> updateJobDetails(tuples.getT2(), clientRequest))
             .as(transactionalOperator::transactional)
-            .doOnSuccess(jobDetails -> jobDetails.stream().forEach(quartzUtil::updateJob))
+            .doOnSuccess(jobDetails -> jobDetails.forEach(quartzUtil::updateJob))
             .map(result -> tuples.getT1())
         )
-        .map(clientRequest -> ClientResponseDTO.of(clientRequest));
+        .map(ClientResponseDTO::of);
   }
 
   private Mono<Tuple2<ClientRequest, List<JobDetail>>> findClientRequestAndJobDetail(ClientRequest clientRequest) {
@@ -103,9 +106,9 @@ public class ClientRequestServiceImpl implements ClientRequestService {
   public Mono<Boolean> delete(String clientId) {
     return clientRequestRepository.deleteById(clientId)
         .zipWith(jobDetailRepository.findByClientId(clientId).collectList())
-        .map(tuple -> tuple.getT2())
+        .map(Tuple2::getT2)
         .flatMap(this::findJobDetailAndJobExecutor)
-        .doOnNext(tuple -> deleteJobExecutorAndJobDetail(tuple))
+        .doOnNext(this::deleteJobExecutorAndJobDetail)
         .map(result -> Boolean.TRUE)
         .onErrorReturn(Boolean.FALSE);
   }
@@ -119,9 +122,16 @@ public class ClientRequestServiceImpl implements ClientRequestService {
   private void deleteJobExecutorAndJobDetail(Tuple2<List<JobDetail>, List<JobExecutor>> tuple) {
     jobExecutorRepository.deleteByIdIn(getExecutorIds(tuple.getT2()))
         .zipWith(jobDetailRepository.deleteByIdIn(getJobDetailIds(tuple.getT1())))
+        .zipWith(jobTriggerRepository.deleteByIdIn(getJobTriggerIds(tuple.getT2())))
         .as(transactionalOperator::transactional)
         .doOnSuccess(result -> quartzUtil.removeJobs(tuple.getT2()))
         .subscribe();
+  }
+
+  private List<String> getJobTriggerIds(List<JobExecutor> jobExecutors) {
+    return jobExecutors.stream()
+        .map(JobExecutor::getTriggerId)
+        .collect(Collectors.toList());
   }
 
   private List<String> getExecutorIds(List<JobExecutor> jobExecutors) {

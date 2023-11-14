@@ -1,6 +1,5 @@
 package com.nantaaditya.cronscheduler.entity;
 
-import com.github.f4b6a3.tsid.Tsid;
 import com.github.f4b6a3.tsid.TsidCreator;
 import java.time.LocalDate;
 import java.time.LocalTime;

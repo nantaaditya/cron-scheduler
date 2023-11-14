@@ -15,4 +15,15 @@ public class JobExecutor extends BaseEntity {
   private String jobId;
   private String triggerId;
   private boolean active;
+
+  public static JobExecutor of(String jobId, String triggerId, boolean active) {
+    return JobExecutor.builder()
+        .id(BaseEntity.generateId())
+        .createdBy(BaseEntity.AUDITOR)
+        .modifiedBy(BaseEntity.AUDITOR)
+        .jobId(jobId)
+        .triggerId(triggerId)
+        .active(active)
+        .build();
+  }
 }

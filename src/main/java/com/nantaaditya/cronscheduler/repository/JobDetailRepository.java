@@ -12,4 +12,6 @@ public interface JobDetailRepository extends R2dbcRepository<JobDetail, String> 
   Flux<JobDetail> findByClientId(String clientId);
 
   Mono<Void> deleteByIdIn(List<String> jobDetailIds);
+
+  Mono<JobDetail> findByJobName(String jobName);
 }

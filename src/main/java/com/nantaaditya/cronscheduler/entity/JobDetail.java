@@ -1,9 +1,12 @@
 package com.nantaaditya.cronscheduler.entity;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.nantaaditya.cronscheduler.job.WebClientJob;
 import com.nantaaditya.cronscheduler.model.constant.JobDataMapKey;
+import com.nantaaditya.cronscheduler.model.request.CreateJobExecutorRequestDTO;
 import com.nantaaditya.cronscheduler.util.JsonHelper;
 import io.r2dbc.postgresql.codec.Json;
+import java.beans.Transient;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -23,16 +26,28 @@ import org.springframework.util.ObjectUtils;
 public class JobDetail extends BaseEntity {
   private String clientId;
   private String jobName;
-  private String jobIdentity;
   private String jobGroup;
   private Json jobData;
 
+  public static JobDetail of(CreateJobExecutorRequestDTO request) {
+    return JobDetail.builder()
+        .id(BaseEntity.generateId())
+        .createdBy(BaseEntity.AUDITOR)
+        .modifiedBy(BaseEntity.AUDITOR)
+        .clientId(request.getClientId())
+        .jobName(request.getJobName())
+        .jobGroup(WebClientJob.WEB_CLIENT_JOB_GROUP)
+        .build();
+  }
+
+  @Transient
   public Map<String, Object> getJobData() {
-    if (ObjectUtils.isEmpty(jobData)) return null;
+    if (ObjectUtils.isEmpty(jobData)) return new HashMap<>();
 
     return JsonHelper.fromJson(jobData, new TypeReference<Map<String, Object>>() {});
   }
 
+  @Transient
   public Object getJobData(String key) {
     return Optional.ofNullable(getJobData())
         .map(result -> result.get(key));
@@ -41,6 +56,13 @@ public class JobDetail extends BaseEntity {
   public void updateClientRequest(ClientRequest clientRequest) {
     Map<String, Object> jobData = getJobData();
     jobData.put(JobDataMapKey.CLIENT_REQUEST, JsonHelper.toJsonString(clientRequest));
+
+    setJobData(JsonHelper.toJson(jobData));
+  }
+
+  public void updateJobTrigger(JobTrigger jobTrigger) {
+    Map<String, Object> jobData = getJobData();
+    jobData.put(JobDataMapKey.JOB_TRIGGER, JsonHelper.toJsonString(jobTrigger));
 
     setJobData(JsonHelper.toJson(jobData));
   }

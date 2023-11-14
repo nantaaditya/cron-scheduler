@@ -1,7 +1,6 @@
 package com.nantaaditya.cronscheduler.model.request;
 
 import com.nantaaditya.cronscheduler.validation.HttpMethodMustValid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
@@ -12,13 +11,13 @@ import org.hibernate.validator.constraints.URL;
 @Data
 @NoArgsConstructor
 public class BaseClientRequestDTO {
-  @NotBlank(message = "NotBlank")
+  @NotNull(message = "NotNull")
   @HttpMethodMustValid
   private String httpMethod;
-  @NotBlank(message = "NotBlank")
+  @NotNull(message = "NotNull")
   @URL(message = "MustValid")
   private String baseUrl;
-  @NotBlank(message = "NotBlank")
+  @NotNull(message = "NotNull")
   private String apiPath;
   private Map<String, String> pathParams;
   private Map<String, String> queryParams;
