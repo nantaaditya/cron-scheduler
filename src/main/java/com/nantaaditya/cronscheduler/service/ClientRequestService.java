@@ -1,6 +1,7 @@
 package com.nantaaditya.cronscheduler.service;
 
 import com.nantaaditya.cronscheduler.model.request.CreateClientRequestDTO;
+import com.nantaaditya.cronscheduler.model.request.DeleteClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.UpdateClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.response.ClientResponseDTO;
 import java.util.List;
@@ -28,8 +29,8 @@ public interface ClientRequestService {
 
   /**
    * delete an existing client request, and remove it from job detail, job executor, and scheduler
-   * @param clientId
+   * @param request
    * @return
    */
-  Mono<Boolean> delete(String clientId);
+  Mono<Boolean> delete(DeleteClientRequestDTO request);
 }

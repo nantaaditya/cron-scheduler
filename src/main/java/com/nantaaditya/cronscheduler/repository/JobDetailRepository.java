@@ -11,6 +11,8 @@ import reactor.core.publisher.Mono;
 public interface JobDetailRepository extends R2dbcRepository<JobDetail, String> {
   Flux<JobDetail> findByClientId(String clientId);
 
+  Flux<JobDetail> findByIdIn(List<String> clientIds);
+
   Mono<Void> deleteByIdIn(List<String> jobDetailIds);
 
   Mono<JobDetail> findByJobName(String jobName);

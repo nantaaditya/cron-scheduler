@@ -12,8 +12,13 @@ import com.nantaaditya.cronscheduler.repository.JobDetailRepository;
 import com.nantaaditya.cronscheduler.repository.JobExecutorRepository;
 import com.nantaaditya.cronscheduler.repository.JobTriggerRepository;
 import com.nantaaditya.cronscheduler.util.QuartzUtil;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
@@ -43,9 +48,9 @@ public class JobExecutorServiceImpl implements JobExecutorService {
         .flatMap(tuples -> saveJobDetailAndExecutor(tuples, request))
         .flatMap(this::updateJobDetail)
         .as(transactionalOperator::transactional)
-        .doOnNext(tuples -> {
-          if (request.isEnable()) quartzUtil.createJob(tuples.getT3());
-        })
+        .doOnNext(tuples ->
+          quartzUtil.createJob(tuples.getT3(), request.isEnable())
+        )
         .map(tuples -> JobExecutorResponseDTO.of(
             tuples.getT4().getId(), tuples.getT1(), tuples.getT3(), tuples.getT2(), request.isEnable()
             )
@@ -84,13 +89,9 @@ public class JobExecutorServiceImpl implements JobExecutorService {
     )
         .flatMap(this::findJobDetailAndTrigger)
         .flatMap(tuples -> update(tuples, request))
-        .doOnNext(tuples -> {
-          if (request.isEnable()) {
-            quartzUtil.updateJob(tuples.getT3());
-          } else {
-            quartzUtil.removeJob(tuples.getT1().getId());
-          }
-        })
+        .doOnNext(tuples ->
+            quartzUtil.updateJob(tuples.getT3(), request.isEnable())
+        )
         .map(result -> JobExecutorResponseDTO.of(
             result.getT1().getId(), result.getT2(), result.getT3(), result.getT4(), request.isEnable()
         ));
@@ -126,5 +127,95 @@ public class JobExecutorServiceImpl implements JobExecutorService {
     )
         .as(transactionalOperator::transactional)
         .map(result -> Tuples.of(result.getT1(), clientRequest, result.getT3(), result.getT2()));
+  }
+
+  @Override
+  public Mono<List<JobExecutorResponseDTO>> findAll(int page, int size) {
+    return jobExecutorRepository.findAllBy(PageRequest.of(page, size))
+        .collectList()
+        .flatMap(jobExecutors -> Mono.zip(
+           findJobDetailsAndClient(jobExecutors),
+           jobTriggerRepository.findByIdIn(getFromJobExecutors(jobExecutors, JobExecutor::getTriggerId))
+               .collectList(),
+           (Tuple2<List<JobDetail>, List<ClientRequest>> tuples, List<JobTrigger> jobTriggers) ->
+                Tuples.of(jobExecutors, tuples.getT1(), tuples.getT2(), jobTriggers)
+        ))
+        .map(tuples -> toResponse(tuples.getT1(), tuples.getT2(), tuples.getT3(), tuples.getT4()));
+  }
+
+  private Mono<Tuple2<List<JobDetail>, List<ClientRequest>>> findJobDetailsAndClient(List<JobExecutor> jobExecutors) {
+    return jobDetailRepository.findByIdIn(getFromJobExecutors(jobExecutors, JobExecutor::getJobId))
+        .collectList()
+        .flatMap(jobDetails -> clientRequestRepository.findByIdIn(getClientIds(jobDetails))
+            .collectList()
+            .map(clientRequests -> Tuples.of(jobDetails, clientRequests))
+        );
+  }
+
+  private List<JobExecutorResponseDTO> toResponse(List<JobExecutor> jobExecutors, List<JobDetail> jobDetails,
+      List<ClientRequest> clientRequests, List<JobTrigger> jobTriggers) {
+    List<JobExecutorResponseDTO> responses = new LinkedList<>();
+
+    for (JobExecutor jobExecutor : jobExecutors) {
+      JobDetail jobDetail = getJobDetail(jobDetails, jobExecutor);
+
+      responses.add(JobExecutorResponseDTO.of(
+          jobExecutor.getId(),
+          getClientRequest(clientRequests, jobDetail),
+          jobDetail,
+          getJobTrigger(jobTriggers, jobExecutor),
+          jobExecutor.isActive()
+      ));
+    }
+
+    return responses;
+  }
+
+  private JobTrigger getJobTrigger(List<JobTrigger> jobTriggers, JobExecutor jobExecutor) {
+    return jobTriggers.stream()
+        .filter(jobTrigger -> jobTrigger.getId().equals(jobExecutor.getTriggerId()))
+        .findFirst()
+        .orElse(null);
+  }
+
+  private ClientRequest getClientRequest(List<ClientRequest> clientRequests, JobDetail jobDetail) {
+    return clientRequests.stream()
+        .filter(clientRequest -> clientRequest.getId().equals(jobDetail.getClientId()))
+        .findFirst()
+        .orElse(null);
+  }
+
+  private JobDetail getJobDetail(List<JobDetail> jobDetails, JobExecutor jobExecutor) {
+    return jobDetails.stream()
+        .filter(jobDetail -> jobDetail.getId().equals(jobExecutor.getJobId()))
+        .findFirst()
+        .orElse(null);
+  }
+
+  private List<String> getFromJobExecutors(List<JobExecutor> jobExecutors, Function<JobExecutor, String> function) {
+    return jobExecutors.stream()
+        .map(function)
+        .collect(Collectors.toList());
+  }
+
+  private List<String> getClientIds(List<JobDetail> jobDetails) {
+    return jobDetails.stream()
+        .map(JobDetail::getClientId)
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public Mono<JobExecutorResponseDTO> findById(String jobExecutorId) {
+    return null;
+  }
+
+  @Override
+  public Mono<Boolean> deleteById(String jobExecutorId) {
+    return null;
+  }
+
+  @Override
+  public Mono<JobExecutorResponseDTO> toggle(String jobExecutorId, boolean enable) {
+    return null;
   }
 }

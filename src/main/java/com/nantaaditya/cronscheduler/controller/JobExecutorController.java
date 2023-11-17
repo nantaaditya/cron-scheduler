@@ -6,12 +6,16 @@ import com.nantaaditya.cronscheduler.model.response.JobExecutorResponseDTO;
 import com.nantaaditya.cronscheduler.model.response.Response;
 import com.nantaaditya.cronscheduler.service.JobExecutorService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
@@ -37,6 +41,16 @@ public class JobExecutorController {
   )
   public Mono<Response<JobExecutorResponseDTO>> update(@Valid @RequestBody UpdateJobExecutorRequestDTO request) {
     return jobExecutorService.update(request)
+        .map(Response::ok);
+  }
+
+  @GetMapping(
+      produces = MediaType.APPLICATION_JSON_VALUE
+  )
+  public Mono<Response<List<JobExecutorResponseDTO>>> findAll(
+      @Valid @Min(value = 0, message = "NotValid") @RequestParam int page,
+      @Valid @Min(value = 1, message = "NotValid") @RequestParam int size) {
+    return jobExecutorService.findAll(page, size)
         .map(Response::ok);
   }
 

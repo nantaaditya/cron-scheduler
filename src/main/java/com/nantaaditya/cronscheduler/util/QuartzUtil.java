@@ -27,9 +27,14 @@ public class QuartzUtil {
 
   private final Scheduler scheduler;
 
-  public void createJob(JobDetail jobDetail) {
-    Tuple2<org.quartz.JobDetail, Trigger> tuples = buildJobDetailAndTrigger(jobDetail);
+  public void createJob(JobDetail jobDetail, boolean runNow) {
+    if (!runNow) return;
 
+    Tuple2<org.quartz.JobDetail, Trigger> tuples = buildJobDetailAndTrigger(jobDetail);
+    run(tuples, jobDetail);
+  }
+
+  private void run(Tuple2<org.quartz.JobDetail, Trigger> tuples, JobDetail jobDetail) {
     try {
       scheduler.scheduleJob(tuples.getT1(), tuples.getT2());
     } catch (SchedulerException e) {
@@ -57,9 +62,9 @@ public class QuartzUtil {
     return Tuples.of(job, trigger);
   }
 
-  public void updateJob(JobDetail jobDetail) {
+  public void updateJob(JobDetail jobDetail, boolean runNow) {
     removeJob((String) jobDetail.getJobData(JobDataMapKey.JOB_EXECUTOR_ID));
-    createJob(jobDetail);
+    createJob(jobDetail, runNow);
   }
 
   public void removeJobs(List<JobExecutor> jobExecutors) {
