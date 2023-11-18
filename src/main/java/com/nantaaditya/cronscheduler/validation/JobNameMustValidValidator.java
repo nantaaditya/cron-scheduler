@@ -1,7 +1,7 @@
 package com.nantaaditya.cronscheduler.validation;
 
-import com.nantaaditya.cronscheduler.entity.JobDetail;
-import com.nantaaditya.cronscheduler.repository.JobDetailRepository;
+import com.nantaaditya.cronscheduler.entity.JobExecutor;
+import com.nantaaditya.cronscheduler.repository.JobExecutorRepository;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +13,7 @@ public class JobNameMustValidValidator implements ConstraintValidator<JobNameMus
 
   private JobNameMustValid validation;
 
-  private final JobDetailRepository jobDetailRepository;
+  private final JobExecutorRepository jobExecutorRepository;
 
   @Override
   public void initialize(JobNameMustValid constraintAnnotation) {
@@ -22,7 +22,7 @@ public class JobNameMustValidValidator implements ConstraintValidator<JobNameMus
 
   @Override
   public boolean isValid(String s, ConstraintValidatorContext constraintValidatorContext) {
-    JobDetail jobDetail = jobDetailRepository.findByJobName(s).block();
-    return validation.create() ? jobDetail == null : jobDetail != null;
+    JobExecutor jobExecutor = jobExecutorRepository.findByJobName(s).block();
+    return validation.create() ? jobExecutor == null : jobExecutor != null;
   }
 }

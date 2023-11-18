@@ -1,6 +1,8 @@
 package com.nantaaditya.cronscheduler.service;
 
 import com.nantaaditya.cronscheduler.model.request.CreateJobExecutorRequestDTO;
+import com.nantaaditya.cronscheduler.model.request.DeleteJobExecutorRequestDTO;
+import com.nantaaditya.cronscheduler.model.request.GetJobExecutorRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.UpdateJobExecutorRequestDTO;
 import com.nantaaditya.cronscheduler.model.response.JobExecutorResponseDTO;
 import java.util.List;
@@ -13,9 +15,9 @@ public interface JobExecutorService {
 
   Mono<List<JobExecutorResponseDTO>> findAll(int page, int size);
 
-  Mono<JobExecutorResponseDTO> findById(String jobExecutorId);
+  Mono<JobExecutorResponseDTO> findById(GetJobExecutorRequestDTO request);
 
-  Mono<Boolean> deleteById(String jobExecutorId);
+  Mono<Boolean> deleteById(DeleteJobExecutorRequestDTO request);
 
-  Mono<JobExecutorResponseDTO> toggle(String jobExecutorId, boolean enable);
+  Mono<JobExecutorResponseDTO> toggle(GetJobExecutorRequestDTO request, boolean enable);
 }

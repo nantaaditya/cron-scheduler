@@ -32,7 +32,7 @@ public class ClientRequest extends BaseEntity {
   private Json headers;
   private Json payload;
   @Transient
-  private List<JobDetail> jobDetails;
+  private List<JobExecutor> jobExecutors;
 
   @Transient
   public Map<String, String> getPathParams() {
@@ -72,7 +72,7 @@ public class ClientRequest extends BaseEntity {
     return apiPath;
   }
 
-  public static ClientRequest of(CreateClientRequestDTO request) {
+  public static ClientRequest create(CreateClientRequestDTO request) {
     return ClientRequest.builder()
         .id(BaseEntity.generateId())
         .createdBy(BaseEntity.AUDITOR)
@@ -117,7 +117,7 @@ public class ClientRequest extends BaseEntity {
         .queryParams((Json) rows.get(0).get("c_query_params"))
         .headers((Json) rows.get(0).get("c_headers"))
         .payload((Json) rows.get(0).get("c_payload"))
-        .jobDetails(JobDetail.from(rows))
+        .jobExecutors(JobExecutor.from(rows))
         .build();
   }
 }

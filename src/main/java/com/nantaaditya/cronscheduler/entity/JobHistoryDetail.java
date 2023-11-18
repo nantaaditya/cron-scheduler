@@ -15,19 +15,19 @@ import org.springframework.data.relational.core.mapping.Table;
 @Table(value = "job_history_detail")
 public class JobHistoryDetail extends BaseEntity{
   private String jobHistoryId;
-  private Json clientData;
-  private Json jobTrigger;
+  private String jobExecutorId;
+  private Json clientRequest;
   private Json resultDetail;
 
-  public static JobHistoryDetail of(String jobHistoryId, ClientRequest clientRequest,
-      JobTrigger jobTrigger, Json resultDetail) {
+  public static JobHistoryDetail create(String jobHistoryId, ClientRequest clientRequest,
+      String jobExecutorId, Json resultDetail) {
     return JobHistoryDetail.builder()
         .id(BaseEntity.generateId())
         .createdBy(BaseEntity.AUDITOR)
         .modifiedBy(BaseEntity.AUDITOR)
         .jobHistoryId(jobHistoryId)
-        .clientData(JsonHelper.toJson(clientRequest))
-        .jobTrigger(JsonHelper.toJson(jobTrigger))
+        .clientRequest(JsonHelper.toJson(clientRequest))
+        .jobExecutorId(jobExecutorId)
         .resultDetail(resultDetail)
         .build();
   }

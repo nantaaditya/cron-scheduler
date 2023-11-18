@@ -1,7 +1,7 @@
 package com.nantaaditya.cronscheduler.service;
 
 import com.nantaaditya.cronscheduler.entity.ClientRequest;
-import com.nantaaditya.cronscheduler.entity.JobDetail;
+import com.nantaaditya.cronscheduler.entity.JobExecutor;
 import com.nantaaditya.cronscheduler.model.request.CreateClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.DeleteClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.GetClientRequestDTO;
@@ -9,9 +9,7 @@ import com.nantaaditya.cronscheduler.model.request.UpdateClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.response.ClientResponseDTO;
 import com.nantaaditya.cronscheduler.repository.ClientRequestRepository;
 import com.nantaaditya.cronscheduler.repository.CustomClientRequestRepository;
-import com.nantaaditya.cronscheduler.repository.JobDetailRepository;
 import com.nantaaditya.cronscheduler.repository.JobExecutorRepository;
-import com.nantaaditya.cronscheduler.repository.JobTriggerRepository;
 import com.nantaaditya.cronscheduler.util.CopyUtil;
 import com.nantaaditya.cronscheduler.util.QuartzUtil;
 import jakarta.validation.Valid;
@@ -28,6 +26,7 @@ import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 @Service
 @RequiredArgsConstructor
@@ -36,11 +35,7 @@ public class ClientRequestServiceImpl implements ClientRequestService {
 
   private final ClientRequestRepository clientRequestRepository;
 
-  private final JobDetailRepository jobDetailRepository;
-
   private final JobExecutorRepository jobExecutorRepository;
-
-  private final JobTriggerRepository jobTriggerRepository;
 
   private final CustomClientRequestRepository customClientRequestRepository;
 
@@ -50,17 +45,17 @@ public class ClientRequestServiceImpl implements ClientRequestService {
 
   @Override
   public Mono<ClientResponseDTO> create(CreateClientRequestDTO request) {
-    return clientRequestRepository.save(ClientRequest.of(request))
+    return clientRequestRepository.save(ClientRequest.create(request))
         .map(ClientResponseDTO::of);
   }
 
   @Override
   public Mono<ClientResponseDTO> update(UpdateClientRequestDTO request) {
-    return customClientRequestRepository.findClientRequestAndJobDetailsByName(request.getClientName())
-        .flatMap(clientRequest -> updateClientAndJobDetail(clientRequest, request)
+    return customClientRequestRepository.findClientRequestAndJobExecutorsByName(request.getClientName())
+        .flatMap(clientRequest -> updateClientAndJobExecutor(clientRequest, request)
             .doOnSuccess(tuple -> {
-              for (JobDetail jobDetail : tuple.getT2()) {
-                quartzUtil.updateJob(jobDetail, jobDetail.isActive());
+              for (JobExecutor jobExecutor : tuple.getT2()) {
+                quartzUtil.updateJob(jobExecutor);
               }
             })
             .map(tuples -> tuples.getT1())
@@ -68,19 +63,19 @@ public class ClientRequestServiceImpl implements ClientRequestService {
         .map(ClientResponseDTO::of);
   }
 
-  private Mono<Tuple2<ClientRequest, List<JobDetail>>> updateClientAndJobDetail(ClientRequest clientRequest, UpdateClientRequestDTO request) {
-    return Mono.zip(
-            clientRequestRepository.save(clientRequest.update(request)),
-            updateJobDetails(clientRequest.getJobDetails(), clientRequest)
+  private Mono<Tuple2<ClientRequest, List<JobExecutor>>> updateClientAndJobExecutor(ClientRequest clientRequest, UpdateClientRequestDTO request) {
+    return clientRequestRepository.save(clientRequest.update(request))
+        .flatMap(updatedClientRequest -> updateJobDetails(clientRequest.getJobExecutors(), updatedClientRequest)
+            .map(jobExecutors -> Tuples.of(updatedClientRequest, jobExecutors))
         )
         .as(transactionalOperator::transactional);
   }
 
-  private Mono<List<JobDetail>> updateJobDetails(List<JobDetail> jobDetails, ClientRequest clientRequest) {
-    return Flux.fromIterable(jobDetails)
-        .doOnNext(jobDetail -> jobDetail.updateClientRequest(clientRequest))
+  private Mono<List<JobExecutor>> updateJobDetails(List<JobExecutor> jobExecutors, ClientRequest clientRequest) {
+    return Flux.fromIterable(jobExecutors)
+        .doOnNext(jobExecutor -> jobExecutor.putJobDataMap(clientRequest))
         .collectList()
-        .flatMap(updatedJobDetails -> jobDetailRepository.saveAll(updatedJobDetails).collectList());
+        .flatMap(updatedJobExecutors -> jobExecutorRepository.saveAll(updatedJobExecutors).collectList());
   }
 
   @Override
@@ -110,7 +105,7 @@ public class ClientRequestServiceImpl implements ClientRequestService {
 
   @Override
   public Mono<Boolean> delete(@Valid DeleteClientRequestDTO request) {
-    return customClientRequestRepository.findClientRequestAndJobDetailsById(request.getClientId())
+    return customClientRequestRepository.findClientRequestAndJobExecutorsById(request.getClientId())
         .doOnNext(this::deleteJobExecutorAndJobDetail)
         .map(result -> Boolean.TRUE)
         .onErrorReturn(Boolean.FALSE);
@@ -119,30 +114,17 @@ public class ClientRequestServiceImpl implements ClientRequestService {
   private void deleteJobExecutorAndJobDetail(ClientRequest clientRequest) {
     Mono.zip(
         clientRequestRepository.deleteById(clientRequest.getId()),
-        jobDetailRepository.deleteByIdIn(getJobDetailIds(clientRequest.getJobDetails())),
-        jobTriggerRepository.deleteByIdIn(getJobTriggerIds(clientRequest.getJobDetails())),
-        jobExecutorRepository.deleteByIdIn(getJobExecutorIds(clientRequest.getJobDetails()))
+        jobExecutorRepository.deleteByIdIn(getJobExecutorIds(clientRequest.getJobExecutors()))
     )
         .as(transactionalOperator::transactional)
-        .doOnSuccess(tuples -> quartzUtil.removeJobs(getJobExecutorIds(clientRequest.getJobDetails())))
+        .doOnSuccess(tuples -> quartzUtil.removeJobs(getJobExecutorIds(clientRequest.getJobExecutors())))
         .subscribe();
   }
 
-  private List<String> getJobTriggerIds(List<JobDetail> jobDetails) {
-    return jobDetails.stream()
-        .map(JobDetail::getJobTriggerId)
+  private List<String> getJobExecutorIds(List<JobExecutor> jobExecutors) {
+    return jobExecutors.stream()
+        .map(JobExecutor::getId)
         .collect(Collectors.toList());
   }
 
-  private List<String> getJobExecutorIds(List<JobDetail> jobDetails) {
-    return jobDetails.stream()
-        .map(JobDetail::getJobExecutorId)
-        .collect(Collectors.toList());
-  }
-
-  private List<String> getJobDetailIds(List<JobDetail> jobDetails) {
-    return jobDetails.stream()
-        .map(JobDetail::getId)
-        .collect(Collectors.toList());
-  }
 }

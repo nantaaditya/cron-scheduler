@@ -3,7 +3,7 @@ package com.nantaaditya.cronscheduler.job;
 import com.nantaaditya.cronscheduler.entity.ClientRequest;
 import com.nantaaditya.cronscheduler.entity.JobHistory;
 import com.nantaaditya.cronscheduler.entity.JobHistoryDetail;
-import com.nantaaditya.cronscheduler.entity.JobTrigger;
+import com.nantaaditya.cronscheduler.model.constant.JobDataMapKey;
 import com.nantaaditya.cronscheduler.model.constant.JobStatus;
 import com.nantaaditya.cronscheduler.properties.JobProperties;
 import com.nantaaditya.cronscheduler.repository.JobHistoryDetailRepository;
@@ -51,9 +51,8 @@ public class WebClientJob implements Job {
 
   @Override
   public void execute(JobExecutionContext context) throws JobExecutionException {
-    ClientRequest clientRequest = (ClientRequest) context.get("clientRequest");
-    JobTrigger jobTrigger = (JobTrigger) context.get("jobTrigger");
-    String jobExecutorId = (String) context.get("jobExecutorId");
+    ClientRequest clientRequest = (ClientRequest) context.get(JobDataMapKey.CLIENT_REQUEST);
+    String jobExecutorId = (String) context.get(JobDataMapKey.JOB_EXECUTOR_ID);
 
     JobHistory jobHistory = JobHistory.of(jobExecutorId);
     jobHistoryRepository.save(jobHistory)
@@ -92,8 +91,8 @@ public class WebClientJob implements Job {
       jobHistoryRepository.save(jobHistory)
           .subscribe(r -> log.info("#JOB - finish {}", jobExecutorId));
 
-      JobHistoryDetail jobHistoryDetail = JobHistoryDetail.of(jobHistory.getId(),
-          clientRequest, jobTrigger, JsonHelper.toJson(Map.of("result", response)));
+      JobHistoryDetail jobHistoryDetail = JobHistoryDetail.create(jobHistory.getId(),
+          clientRequest, jobExecutorId, JsonHelper.toJson(Map.of("result", response)));
       jobHistoryDetailRepository.save(jobHistoryDetail)
           .subscribe();
     });

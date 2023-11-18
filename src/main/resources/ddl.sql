@@ -19,7 +19,7 @@ create table client_request
     primary key (id)
 );
 
-create table client_request
+create table job_executor
 (
     id            varchar(64),
     created_by    varchar(50),
@@ -33,5 +33,7 @@ create table client_request
     job_name      varchar(255),
     job_group     varchar(50),
     job_data      jsonb,
+    trigger_cron  varchar(15),
+    active        boolean,
     primary key (id)
 );

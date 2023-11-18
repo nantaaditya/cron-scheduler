@@ -1,9 +1,7 @@
 package com.nantaaditya.cronscheduler.util;
 
-import com.nantaaditya.cronscheduler.entity.JobDetail;
-import com.nantaaditya.cronscheduler.entity.JobTrigger;
+import com.nantaaditya.cronscheduler.entity.JobExecutor;
 import com.nantaaditya.cronscheduler.job.WebClientJob;
-import com.nantaaditya.cronscheduler.model.constant.JobDataMapKey;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,44 +24,43 @@ public class QuartzUtil {
 
   private final Scheduler scheduler;
 
-  public void createJob(JobDetail jobDetail, boolean runNow) {
-    if (!runNow) return;
+  public void createJob(JobExecutor jobExecutor) {
+    if (!jobExecutor.isActive()) return;
 
-    Tuple2<org.quartz.JobDetail, Trigger> tuples = buildJobDetailAndTrigger(jobDetail);
-    run(tuples, jobDetail);
+    Tuple2<org.quartz.JobDetail, Trigger> tuples = buildJobDetailAndTrigger(jobExecutor);
+    run(jobExecutor.getId(), tuples);
   }
 
-  private void run(Tuple2<org.quartz.JobDetail, Trigger> tuples, JobDetail jobDetail) {
+  private void run(String jobExecutorId, Tuple2<org.quartz.JobDetail, Trigger> tuples) {
     try {
       scheduler.scheduleJob(tuples.getT1(), tuples.getT2());
     } catch (SchedulerException e) {
-      log.error("#JOB - failed initialize job {}, ", jobDetail.getJobData(JobDataMapKey.JOB_EXECUTOR_ID), e);
+      log.error("#JOB - failed initialize job {}, ", jobExecutorId, e);
     }
   }
 
-  private Tuple2<org.quartz.JobDetail, Trigger> buildJobDetailAndTrigger(JobDetail jobDetail) {
+  private Tuple2<org.quartz.JobDetail, Trigger> buildJobDetailAndTrigger(JobExecutor jobExecutor) {
     JobDataMap jobDataMap = new JobDataMap();
-    jobDetail.initializeJobDataMap(jobDataMap);
-    JobTrigger jobTrigger = (JobTrigger) jobDataMap.get(JobDataMapKey.JOB_TRIGGER);
+    jobExecutor.loadJobDataMap(jobDataMap);
 
     org.quartz.JobDetail job = JobBuilder.newJob(WebClientJob.class)
-        .withIdentity(jobDataMap.getString(JobDataMapKey.JOB_EXECUTOR_ID), WebClientJob.WEB_CLIENT_JOB_GROUP)
+        .withIdentity(jobExecutor.getId(), WebClientJob.WEB_CLIENT_JOB_GROUP)
         .setJobData(jobDataMap)
         .build();
 
     Trigger trigger = TriggerBuilder.newTrigger()
-        .withIdentity(jobDataMap.getString(JobDataMapKey.JOB_EXECUTOR_ID), WebClientJob.WEB_CLIENT_JOB_GROUP)
+        .withIdentity(jobExecutor.getId(), WebClientJob.WEB_CLIENT_JOB_GROUP)
         .startNow()
-        .withSchedule(CronScheduleBuilder.cronSchedule(jobTrigger.getTriggerCron()))
+        .withSchedule(CronScheduleBuilder.cronSchedule(jobExecutor.getTriggerCron()))
         .forJob(job)
         .build();
 
     return Tuples.of(job, trigger);
   }
 
-  public void updateJob(JobDetail jobDetail, boolean runNow) {
-    removeJob((String) jobDetail.getJobData(JobDataMapKey.JOB_EXECUTOR_ID));
-    createJob(jobDetail, runNow);
+  public void updateJob(JobExecutor jobExecutor) {
+    removeJob(jobExecutor.getId());
+    createJob(jobExecutor);
   }
 
   public void removeJobs(List<String> jobExecutorIds) {
