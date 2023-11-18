@@ -74,17 +74,15 @@ public class WebClientJob implements Job {
       requestBodySpec.bodyValue(clientRequest.getPayload());
     }
 
-    Mono<Boolean> result = requestBodySpec.exchangeToMono(response -> {
+    Mono<String> result = requestBodySpec.exchangeToMono(response -> {
           if (response.statusCode().is2xxSuccessful()) {
             return response
                 .bodyToMono(String.class)
-                .doOnNext(responseBody -> log.info("#JOB - result success", responseBody))
-                .map(responseBody -> Boolean.TRUE);
+                .doOnNext(responseBody -> log.info("#JOB - result success", responseBody));
           } else {
             return response
                 .bodyToMono(String.class)
-                .doOnNext(responseBody -> log.info("#JOB - result failed", responseBody))
-                .map(responseBody -> Boolean.FALSE);
+                .doOnNext(responseBody -> log.info("#JOB - result failed", responseBody));
           }
         });
 

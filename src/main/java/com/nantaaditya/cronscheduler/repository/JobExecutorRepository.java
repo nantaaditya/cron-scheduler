@@ -11,7 +11,6 @@ import reactor.core.publisher.Mono;
 @Repository
 public interface JobExecutorRepository extends R2dbcRepository<JobExecutor, String> {
   Flux<JobExecutor> findAllByActiveTrue();
-  Flux<JobExecutor> findByJobIdIn(List<String> jobIds);
   Flux<JobExecutor> findAllBy(Pageable pageable);
   Mono<Void> deleteByIdIn(List<String> executorIds);
   Mono<JobExecutor> findByJobName(String jobName);
