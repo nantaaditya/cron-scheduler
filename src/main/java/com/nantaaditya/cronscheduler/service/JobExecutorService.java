@@ -20,4 +20,6 @@ public interface JobExecutorService {
   Mono<Boolean> deleteById(DeleteJobExecutorRequestDTO request);
 
   Mono<JobExecutorResponseDTO> toggle(GetJobExecutorRequestDTO request, boolean enable);
+
+  Mono<Boolean> run(GetJobExecutorRequestDTO request);
 }

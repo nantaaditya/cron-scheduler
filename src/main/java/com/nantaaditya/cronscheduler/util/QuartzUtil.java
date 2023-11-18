@@ -27,7 +27,7 @@ public class QuartzUtil {
   public void createJob(JobExecutor jobExecutor) {
     if (!jobExecutor.isActive()) return;
 
-    Tuple2<org.quartz.JobDetail, Trigger> tuples = buildJobDetailAndTrigger(jobExecutor);
+    Tuple2<org.quartz.JobDetail, Trigger> tuples = buildJobDetailAndTrigger(jobExecutor, false);
     run(jobExecutor.getId(), tuples);
   }
 
@@ -39,7 +39,7 @@ public class QuartzUtil {
     }
   }
 
-  private Tuple2<org.quartz.JobDetail, Trigger> buildJobDetailAndTrigger(JobExecutor jobExecutor) {
+  private Tuple2<org.quartz.JobDetail, Trigger> buildJobDetailAndTrigger(JobExecutor jobExecutor, boolean runOnce) {
     JobDataMap jobDataMap = new JobDataMap();
     jobExecutor.loadJobDataMap(jobDataMap);
 
@@ -48,12 +48,21 @@ public class QuartzUtil {
         .setJobData(jobDataMap)
         .build();
 
-    Trigger trigger = TriggerBuilder.newTrigger()
-        .withIdentity(jobExecutor.getId(), WebClientJob.WEB_CLIENT_JOB_GROUP)
-        .startNow()
-        .withSchedule(CronScheduleBuilder.cronSchedule(jobExecutor.getTriggerCron()))
-        .forJob(job)
-        .build();
+    Trigger trigger = null;
+    if (runOnce) {
+      trigger = TriggerBuilder.newTrigger()
+          .withIdentity(jobExecutor.getId(), WebClientJob.WEB_CLIENT_JOB_GROUP)
+          .startNow()
+          .forJob(job)
+          .build();
+    } else {
+      trigger = TriggerBuilder.newTrigger()
+          .withIdentity(jobExecutor.getId(), WebClientJob.WEB_CLIENT_JOB_GROUP)
+          .startNow()
+          .forJob(job)
+          .withSchedule(CronScheduleBuilder.cronSchedule(jobExecutor.getTriggerCron()))
+          .build();
+    }
 
     return Tuples.of(job, trigger);
   }
@@ -74,5 +83,10 @@ public class QuartzUtil {
     } catch (SchedulerException e) {
       log.error("#JOB - failed remove job {}", jobExecutorId, e);
     }
+  }
+
+  public void runNow(JobExecutor jobExecutor) {
+    Tuple2<org.quartz.JobDetail, Trigger> tuples = buildJobDetailAndTrigger(jobExecutor, true);
+    run(jobExecutor.getId(), tuples);
   }
 }

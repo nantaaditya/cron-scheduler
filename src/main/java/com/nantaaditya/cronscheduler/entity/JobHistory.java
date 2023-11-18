@@ -20,7 +20,7 @@ public class JobHistory extends BaseEntity {
   private LocalTime executedTime;
   private String status;
 
-  public static JobHistory of(String jobExecutorId) {
+  public static JobHistory create(String jobExecutorId) {
     return JobHistory.builder()
         .id(BaseEntity.generateId())
         .createdBy(BaseEntity.AUDITOR)

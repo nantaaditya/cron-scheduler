@@ -72,7 +72,7 @@ public class ClientRequestController {
       value = "/{clientId}",
       produces = MediaType.APPLICATION_JSON_VALUE
   )
-  public Mono<Response<Boolean>> delete(@Valid @NotBlank(message = "NotBlank") String clientId) {
+  public Mono<Response<Boolean>> delete(@Valid @NotBlank(message = "NotBlank") @PathVariable String clientId) {
     return clientRequestService.delete(new DeleteClientRequestDTO(clientId))
         .map(Response::ok);
   }

@@ -54,7 +54,7 @@ public class WebClientJob implements Job {
     ClientRequest clientRequest = (ClientRequest) context.get(JobDataMapKey.CLIENT_REQUEST);
     String jobExecutorId = (String) context.get(JobDataMapKey.JOB_EXECUTOR_ID);
 
-    JobHistory jobHistory = JobHistory.of(jobExecutorId);
+    JobHistory jobHistory = JobHistory.create(jobExecutorId);
     jobHistoryRepository.save(jobHistory)
         .subscribe(result -> log.info("#JOB - starting {}", jobExecutorId));
 
@@ -76,11 +76,15 @@ public class WebClientJob implements Job {
 
     Mono<Boolean> result = requestBodySpec.exchangeToMono(response -> {
           if (response.statusCode().is2xxSuccessful()) {
-            log.info("#JOB - result success");
-            return Mono.just(Boolean.TRUE);
+            return response
+                .bodyToMono(String.class)
+                .doOnNext(responseBody -> log.info("#JOB - result success", responseBody))
+                .map(responseBody -> Boolean.TRUE);
           } else {
-            log.error("#JOB - result failed");
-            return Mono.just(Boolean.FALSE);
+            return response
+                .bodyToMono(String.class)
+                .doOnNext(responseBody -> log.info("#JOB - result failed", responseBody))
+                .map(responseBody -> Boolean.FALSE);
           }
         });
 

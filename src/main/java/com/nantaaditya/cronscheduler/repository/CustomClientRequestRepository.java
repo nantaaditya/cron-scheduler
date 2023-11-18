@@ -57,10 +57,4 @@ public class CustomClientRequestRepository {
         .singleOrEmpty();
   }
 
-  public Mono<List<ClientRequest>> findClientRequestAndJobDetailsByExecutorId(List<JobExecutor> jobExecutors) {
-    return Flux.fromIterable(jobExecutors)
-        .flatMap(jobExecutor -> findClientRequestAndJobDetailsByExecutorId(jobExecutor.getId()))
-        .collectList();
-  }
-
 }

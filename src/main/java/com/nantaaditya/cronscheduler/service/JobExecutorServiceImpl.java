@@ -8,8 +8,10 @@ import com.nantaaditya.cronscheduler.model.request.GetJobExecutorRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.UpdateJobExecutorRequestDTO;
 import com.nantaaditya.cronscheduler.model.response.JobExecutorResponseDTO;
 import com.nantaaditya.cronscheduler.repository.ClientRequestRepository;
+import com.nantaaditya.cronscheduler.repository.CustomClientRequestRepository;
 import com.nantaaditya.cronscheduler.repository.JobExecutorRepository;
 import com.nantaaditya.cronscheduler.util.QuartzUtil;
+import jakarta.validation.Valid;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,6 +33,7 @@ public class JobExecutorServiceImpl implements JobExecutorService {
 
   private final JobExecutorRepository jobExecutorRepository;
   private final ClientRequestRepository clientRequestRepository;
+  private final CustomClientRequestRepository customClientRequestRepository;
   private final QuartzUtil quartzUtil;
   private final TransactionalOperator transactionalOperator;
 
@@ -62,7 +65,6 @@ public class JobExecutorServiceImpl implements JobExecutorService {
         .doOnNext(tuples -> quartzUtil.updateJob(tuples.getT1()))
         .map(result -> JobExecutorResponseDTO.of(result.getT1(), result.getT2()));
   }
-
 
   private Mono<Tuple2<JobExecutor, ClientRequest>> update(Tuple2<JobExecutor, ClientRequest> tuples,
       UpdateJobExecutorRequestDTO request) {
@@ -117,17 +119,57 @@ public class JobExecutorServiceImpl implements JobExecutorService {
   }
 
   @Override
-  public Mono<JobExecutorResponseDTO> findById(GetJobExecutorRequestDTO jobExecutorId) {
-    return null;
+  public Mono<JobExecutorResponseDTO> findById(@Valid GetJobExecutorRequestDTO request) {
+    return customClientRequestRepository.findClientRequestAndJobDetailsByExecutorId(request.getJobExecutorId())
+        .map(clientRequest -> JobExecutorResponseDTO.of(
+            getJobExecutor(clientRequest.getJobExecutors(), request.getJobExecutorId()),
+            clientRequest
+            )
+        );
+  }
+
+  private JobExecutor getJobExecutor(List<JobExecutor> jobExecutors, String jobExecutorId) {
+    return jobExecutors.stream()
+        .filter(jobExecutor -> jobExecutorId.equals(jobExecutor.getId()))
+        .findFirst()
+        .orElse(null);
   }
 
   @Override
-  public Mono<Boolean> deleteById(DeleteJobExecutorRequestDTO jobExecutorId) {
-    return null;
+  public Mono<Boolean> deleteById(@Valid DeleteJobExecutorRequestDTO request) {
+    return jobExecutorRepository.deleteById(request.getJobExecutorId())
+        .doOnSuccess(result -> quartzUtil.removeJob(request.getJobExecutorId()))
+        .map(result -> Boolean.TRUE)
+        .onErrorReturn(Boolean.FALSE);
   }
 
   @Override
-  public Mono<JobExecutorResponseDTO> toggle(GetJobExecutorRequestDTO jobExecutorId, boolean enable) {
-    return null;
+  public Mono<JobExecutorResponseDTO> toggle(@Valid GetJobExecutorRequestDTO request, boolean enable) {
+    return customClientRequestRepository.findClientRequestAndJobDetailsByExecutorId(request.getJobExecutorId())
+        .map(clientRequest -> Tuples.of(
+            clientRequest,
+            getJobExecutor(clientRequest.getJobExecutors(), request.getJobExecutorId())
+            )
+        )
+        .flatMap(tuples -> {
+          tuples.getT2().setActive(enable);
+          return jobExecutorRepository.save(tuples.getT2())
+              .map(jobExecutor -> Tuples.of(tuples.getT1(), jobExecutor));
+        })
+        .doOnNext(tuples -> quartzUtil.updateJob(tuples.getT2()))
+        .map(tuples -> JobExecutorResponseDTO.of(tuples.getT2(), tuples.getT1()));
+  }
+
+  @Override
+  public Mono<Boolean> run(@Valid GetJobExecutorRequestDTO request) {
+    return customClientRequestRepository.findClientRequestAndJobDetailsByExecutorId(request.getJobExecutorId())
+        .map(clientRequest -> Tuples.of(
+                clientRequest,
+                getJobExecutor(clientRequest.getJobExecutors(), request.getJobExecutorId())
+            )
+        )
+        .doOnNext(tuples -> quartzUtil.runNow(tuples.getT2()))
+        .map(result -> Boolean.TRUE)
+        .onErrorReturn(Boolean.FALSE);
   }
 }
