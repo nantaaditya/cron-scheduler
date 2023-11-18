@@ -6,8 +6,11 @@ import com.nantaaditya.cronscheduler.model.constant.JobDataMapKey;
 import com.nantaaditya.cronscheduler.model.request.CreateJobExecutorRequestDTO;
 import com.nantaaditya.cronscheduler.util.JsonHelper;
 import io.r2dbc.postgresql.codec.Json;
-import java.beans.Transient;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
@@ -15,6 +18,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.quartz.JobDataMap;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.relational.core.mapping.Table;
 import org.springframework.util.ObjectUtils;
 
@@ -28,6 +32,12 @@ public class JobDetail extends BaseEntity {
   private String jobName;
   private String jobGroup;
   private Json jobData;
+  @Transient
+  private String jobExecutorId;
+  @Transient
+  private String jobTriggerId;
+  @Transient
+  private boolean active;
 
   public static JobDetail of(CreateJobExecutorRequestDTO request) {
     return JobDetail.builder()
@@ -38,6 +48,31 @@ public class JobDetail extends BaseEntity {
         .jobName(request.getJobName())
         .jobGroup(WebClientJob.WEB_CLIENT_JOB_GROUP)
         .build();
+  }
+  
+  public static List<JobDetail> from(List<Map<String, Object>> rows) {
+    List<JobDetail> jobDetails = new ArrayList<>();
+    for (Map<String, Object> row : rows) {
+      jobDetails.add(JobDetail.builder()
+          .id((String) row.get("j_id"))
+          .createdBy((String) row.get("j_created_by"))
+          .createdDate((LocalDate) row.get("j_created_date"))
+          .createdTime((LocalTime) row.get("j_created_tim"))
+          .modifiedBy((String) row.get("j_modified_by"))
+          .modifiedDate((LocalDate) row.get("j_modified_date"))
+          .modifiedTime((LocalTime) row.get("j_modified_time"))
+          .version(Long.parseLong((String) row.get("j_version")))
+          .clientId((String) row.get("j_client_id"))
+          .jobName((String) row.get("j_job_name"))
+          .jobGroup((String) row.get("j_job_group"))
+          .jobData((Json) row.get("j_job_data"))
+          .jobExecutorId((String) row.get("e_id"))
+          .jobTriggerId((String) row.get("e_trigger_id"))
+          .active((boolean) row.get("e_active"))
+          .build()
+      );
+    }
+    return jobDetails;
   }
 
   @Transient

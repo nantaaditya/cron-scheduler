@@ -1,7 +1,6 @@
 package com.nantaaditya.cronscheduler.util;
 
 import com.nantaaditya.cronscheduler.entity.JobDetail;
-import com.nantaaditya.cronscheduler.entity.JobExecutor;
 import com.nantaaditya.cronscheduler.entity.JobTrigger;
 import com.nantaaditya.cronscheduler.job.WebClientJob;
 import com.nantaaditya.cronscheduler.model.constant.JobDataMapKey;
@@ -67,9 +66,8 @@ public class QuartzUtil {
     createJob(jobDetail, runNow);
   }
 
-  public void removeJobs(List<JobExecutor> jobExecutors) {
-    jobExecutors.stream()
-        .map(JobExecutor::getId)
+  public void removeJobs(List<String> jobExecutorIds) {
+    jobExecutorIds.stream()
         .forEach(this::removeJob);
   }
 

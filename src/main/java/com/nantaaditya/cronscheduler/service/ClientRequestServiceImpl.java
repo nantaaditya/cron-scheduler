@@ -2,12 +2,12 @@ package com.nantaaditya.cronscheduler.service;
 
 import com.nantaaditya.cronscheduler.entity.ClientRequest;
 import com.nantaaditya.cronscheduler.entity.JobDetail;
-import com.nantaaditya.cronscheduler.entity.JobExecutor;
 import com.nantaaditya.cronscheduler.model.request.CreateClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.DeleteClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.UpdateClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.response.ClientResponseDTO;
 import com.nantaaditya.cronscheduler.repository.ClientRequestRepository;
+import com.nantaaditya.cronscheduler.repository.CustomClientRequestRepository;
 import com.nantaaditya.cronscheduler.repository.JobDetailRepository;
 import com.nantaaditya.cronscheduler.repository.JobExecutorRepository;
 import com.nantaaditya.cronscheduler.repository.JobTriggerRepository;
@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
@@ -28,7 +27,6 @@ import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +41,8 @@ public class ClientRequestServiceImpl implements ClientRequestService {
 
   private final JobTriggerRepository jobTriggerRepository;
 
+  private final CustomClientRequestRepository customClientRequestRepository;
+
   private final QuartzUtil quartzUtil;
 
   private final TransactionalOperator transactionalOperator;
@@ -55,38 +55,24 @@ public class ClientRequestServiceImpl implements ClientRequestService {
 
   @Override
   public Mono<ClientResponseDTO> update(UpdateClientRequestDTO request) {
-    return clientRequestRepository.findByClientName(request.getClientName())
-        .flatMap(this::findClientRequestAndJobDetail)
-        .flatMap(tuples -> clientRequestRepository.save(tuples.getT1().update(request))
-            .flatMap(clientRequest -> updateJobDetails(tuples.getT2(), clientRequest))
-            .as(transactionalOperator::transactional)
-            .flatMap(jobDetails -> jobExecutorRepository.findByJobIdIn(getJobDetailIds(jobDetails))
-                .collectList()
-                .map(jobExecutors -> Tuples.of(jobDetails, jobExecutors))
-            )
+    return customClientRequestRepository.findClientRequestAndJobDetailsByName(request.getClientName())
+        .flatMap(clientRequest -> updateClientAndJobDetail(clientRequest, request)
             .doOnSuccess(tuple -> {
-              for (JobDetail jobDetail : tuple.getT1()) {
-                boolean isRunNow = isRunNow(tuple.getT2(), jobDetail.getId());
-                quartzUtil.updateJob(jobDetail, isRunNow);
+              for (JobDetail jobDetail : tuple.getT2()) {
+                quartzUtil.updateJob(jobDetail, jobDetail.isActive());
               }
             })
-            .map(result -> tuples.getT1())
+            .map(tuples -> tuples.getT1())
         )
         .map(ClientResponseDTO::of);
   }
 
-  private boolean isRunNow(List<JobExecutor> jobExecutors, String jobId) {
-    return jobExecutors.stream()
-        .filter(jobExecutor -> jobId.equals(jobExecutor.getJobId()))
-        .findFirst()
-        .map(JobExecutor::isActive)
-        .orElse(Boolean.FALSE);
-  }
-
-  private Mono<Tuple2<ClientRequest, List<JobDetail>>> findClientRequestAndJobDetail(ClientRequest clientRequest) {
-    return jobDetailRepository.findByClientId(clientRequest.getId())
-        .collectList()
-        .map(jobDetails -> Tuples.of(clientRequest, jobDetails));
+  private Mono<Tuple2<ClientRequest, List<JobDetail>>> updateClientAndJobDetail(ClientRequest clientRequest, UpdateClientRequestDTO request) {
+    return Mono.zip(
+            clientRequestRepository.save(clientRequest.update(request)),
+            updateJobDetails(clientRequest.getJobDetails(), clientRequest)
+        )
+        .as(transactionalOperator::transactional);
   }
 
   private Mono<List<JobDetail>> updateJobDetails(List<JobDetail> jobDetails, ClientRequest clientRequest) {
@@ -102,9 +88,7 @@ public class ClientRequestServiceImpl implements ClientRequestService {
     pageRequest.withSort(Sort.by(Direction.ASC, "created_date", "created_time"));
     return clientRequestRepository.findAllby(pageRequest)
         .collectList()
-        .zipWith(clientRequestRepository.count())
-        .map(tuple -> new PageImpl<>(tuple.getT1(), pageRequest, tuple.getT2()))
-        .map(pageResult -> CopyUtil.copy(pageResult.getContent(), ClientResponseDTO::new, composeResponse()));
+        .map(clientRequests -> CopyUtil.copy(clientRequests, ClientResponseDTO::new, composeResponse()));
   }
 
   private BiFunction<ClientRequest, ClientResponseDTO, ClientResponseDTO> composeResponse() {
@@ -125,39 +109,33 @@ public class ClientRequestServiceImpl implements ClientRequestService {
 
   @Override
   public Mono<Boolean> delete(@Valid DeleteClientRequestDTO request) {
-    return clientRequestRepository.deleteById(request.getClientId())
-        .zipWith(jobDetailRepository.findByClientId(request.getClientId()).collectList())
-        .map(Tuple2::getT2)
-        .flatMap(this::findJobDetailAndJobExecutor)
+    return customClientRequestRepository.findClientRequestAndJobDetailsById(request.getClientId())
         .doOnNext(this::deleteJobExecutorAndJobDetail)
         .map(result -> Boolean.TRUE)
         .onErrorReturn(Boolean.FALSE);
   }
 
-  private Mono<Tuple2<List<JobDetail>, List<JobExecutor>>> findJobDetailAndJobExecutor(List<JobDetail> jobDetails) {
-    return jobExecutorRepository.findByJobIdIn(getJobDetailIds(jobDetails))
-        .collectList()
-        .map(jobExecutors -> Tuples.of(jobDetails, jobExecutors));
-  }
-
-  private void deleteJobExecutorAndJobDetail(Tuple2<List<JobDetail>, List<JobExecutor>> tuple) {
-    jobExecutorRepository.deleteByIdIn(getExecutorIds(tuple.getT2()))
-        .zipWith(jobDetailRepository.deleteByIdIn(getJobDetailIds(tuple.getT1())))
-        .zipWith(jobTriggerRepository.deleteByIdIn(getJobTriggerIds(tuple.getT2())))
+  private void deleteJobExecutorAndJobDetail(ClientRequest clientRequest) {
+    Mono.zip(
+        clientRequestRepository.deleteById(clientRequest.getId()),
+        jobDetailRepository.deleteByIdIn(getJobDetailIds(clientRequest.getJobDetails())),
+        jobTriggerRepository.deleteByIdIn(getJobTriggerIds(clientRequest.getJobDetails())),
+        jobExecutorRepository.deleteByIdIn(getJobExecutorIds(clientRequest.getJobDetails()))
+    )
         .as(transactionalOperator::transactional)
-        .doOnSuccess(result -> quartzUtil.removeJobs(tuple.getT2()))
+        .doOnSuccess(tuples -> quartzUtil.removeJobs(getJobExecutorIds(clientRequest.getJobDetails())))
         .subscribe();
   }
 
-  private List<String> getJobTriggerIds(List<JobExecutor> jobExecutors) {
-    return jobExecutors.stream()
-        .map(JobExecutor::getTriggerId)
+  private List<String> getJobTriggerIds(List<JobDetail> jobDetails) {
+    return jobDetails.stream()
+        .map(JobDetail::getJobTriggerId)
         .collect(Collectors.toList());
   }
 
-  private List<String> getExecutorIds(List<JobExecutor> jobExecutors) {
-    return jobExecutors.stream()
-        .map(JobExecutor::getId)
+  private List<String> getJobExecutorIds(List<JobDetail> jobDetails) {
+    return jobDetails.stream()
+        .map(JobDetail::getJobExecutorId)
         .collect(Collectors.toList());
   }
 
