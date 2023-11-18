@@ -4,6 +4,7 @@ import com.nantaaditya.cronscheduler.entity.ClientRequest;
 import com.nantaaditya.cronscheduler.entity.JobDetail;
 import com.nantaaditya.cronscheduler.model.request.CreateClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.DeleteClientRequestDTO;
+import com.nantaaditya.cronscheduler.model.request.GetClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.UpdateClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.response.ClientResponseDTO;
 import com.nantaaditya.cronscheduler.repository.ClientRequestRepository;
@@ -102,8 +103,8 @@ public class ClientRequestServiceImpl implements ClientRequestService {
   }
 
   @Override
-  public Mono<ClientResponseDTO> find(String clientId) {
-    return clientRequestRepository.findById(clientId)
+  public Mono<ClientResponseDTO> find(@Valid GetClientRequestDTO request) {
+    return clientRequestRepository.findById(request.getClientId())
         .map(ClientResponseDTO::of);
   }
 

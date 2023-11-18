@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class ClientRequestMustExistsValidator implements ConstraintValidator<ClientRequestMustNotExists, String> {
+public class ClientRequestNameMustExistsValidator implements ConstraintValidator<ClientRequestMustNotExists, String> {
 
   private final ClientRequestRepository clientRequestRepository;
 

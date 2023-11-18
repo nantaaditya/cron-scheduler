@@ -9,10 +9,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Documented
-@Constraint(validatedBy = ClientRequestMustExistsValidator.class)
+@Constraint(validatedBy = ClientRequestNameMustExistsValidator.class)
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ClientRequestMustExists {
+public @interface ClientRequestNameMustExists {
   String message() default "MustExists";
   Class<?>[] groups() default {};
   Class<? extends Payload>[] payload() default {};

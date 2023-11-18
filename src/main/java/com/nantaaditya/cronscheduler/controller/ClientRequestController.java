@@ -2,6 +2,7 @@ package com.nantaaditya.cronscheduler.controller;
 
 import com.nantaaditya.cronscheduler.model.request.CreateClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.DeleteClientRequestDTO;
+import com.nantaaditya.cronscheduler.model.request.GetClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.UpdateClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.response.ClientResponseDTO;
 import com.nantaaditya.cronscheduler.model.response.Response;
@@ -63,7 +64,7 @@ public class ClientRequestController {
       produces = MediaType.APPLICATION_JSON_VALUE
   )
   public Mono<Response<ClientResponseDTO>> find(@Valid @NotBlank(message = "NotBlank") @PathVariable String clientId) {
-    return clientRequestService.find(clientId)
+    return clientRequestService.find(new GetClientRequestDTO(clientId))
         .map(Response::ok);
   }
 
