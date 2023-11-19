@@ -41,9 +41,9 @@ public class RestExceptionHandler {
     log.error("#ERROR - constraint violation exception, ", ex);
     Map<String, List<String>> errors = new HashMap<>();
     ex.getConstraintViolations()
-        .forEach(violation -> {
-          putEntry(errors, getField(violation.getPropertyPath()), violation.getMessage());
-        });
+        .forEach(violation ->
+          putEntry(errors, getField(violation.getPropertyPath()), violation.getMessage())
+        );
     return Response.error(errors);
   }
 

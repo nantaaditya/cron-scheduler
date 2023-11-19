@@ -13,7 +13,7 @@ import org.springframework.util.StringUtils;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class JsonHelper {
 
-  private final static ObjectMapper objectMapper = new ObjectMapper();
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   static {
     objectMapper.registerModule(new JavaTimeModule());

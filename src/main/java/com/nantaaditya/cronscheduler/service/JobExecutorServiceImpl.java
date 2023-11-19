@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -37,6 +36,10 @@ public class JobExecutorServiceImpl implements JobExecutorService {
   private final QuartzUtil quartzUtil;
   private final TransactionalOperator transactionalOperator;
 
+  private static final String NOT_EXISTS = "NotExists";
+  private static final String ALREADY_EXISTS = "AlreadyExists";
+  private static final String INVALID_PARAMETER = "invalid parameter";
+
   @Override
   public Mono<JobExecutorResponseDTO> create(CreateJobExecutorRequestDTO request) {
     return Mono.zip(
@@ -45,16 +48,16 @@ public class JobExecutorServiceImpl implements JobExecutorService {
         Tuples::of
     )
       .handle((tuples, sink) -> {
-        if (tuples.getT1() && !tuples.getT2()) {
+        if (tuples.getT1().booleanValue() && !tuples.getT2().booleanValue()) {
           sink.next(request);
         } else {
           Map<String, List<String>> errors = new HashMap<>();
-          if (!tuples.getT1())
-            errors.put("clientId", List.of("NotExists"));
-          if (!tuples.getT2())
-            errors.put("jobName", List.of("AlreadyExists"));
+          if (!tuples.getT1().booleanValue())
+            errors.put("clientId", List.of(NOT_EXISTS));
+          if (!tuples.getT2().booleanValue())
+            errors.put("jobName", List.of(ALREADY_EXISTS));
 
-          sink.error(new InvalidParameterException(errors, "invalid parameter"));
+          sink.error(new InvalidParameterException(errors, INVALID_PARAMETER));
         }
       })
       .flatMap(r -> clientRequestRepository.findById(request.getClientId()))
@@ -79,16 +82,16 @@ public class JobExecutorServiceImpl implements JobExecutorService {
         jobExecutorRepository.existsById(request.getJobExecutorId())
     )
       .handle((tuples, sink) -> {
-        if (tuples.getT1() && tuples.getT2()) {
+        if (tuples.getT1().booleanValue() && tuples.getT2().booleanValue()) {
           sink.next(request);
         } else {
           Map<String, List<String>> errors = new HashMap<>();
-          if (!tuples.getT1())
-            errors.put("clientId", List.of("NotExists"));
-          if (!tuples.getT2())
-            errors.put("jobExecutorId", List.of("NotExists"));
+          if (!tuples.getT1().booleanValue())
+            errors.put("clientId", List.of(NOT_EXISTS));
+          if (!tuples.getT2().booleanValue())
+            errors.put("jobExecutorId", List.of(NOT_EXISTS));
 
-          sink.error(new InvalidParameterException(errors, "invalid parameter"));
+          sink.error(new InvalidParameterException(errors, INVALID_PARAMETER));
         }
       })
       .flatMap(r -> Mono.zip(
@@ -150,15 +153,15 @@ public class JobExecutorServiceImpl implements JobExecutorService {
   private List<String> getClientIds(List<JobExecutor> jobExecutors) {
     return jobExecutors.stream()
         .map(JobExecutor::getClientId)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Override
   public Mono<JobExecutorResponseDTO> findById(String id) {
     return jobExecutorRepository.existsById(id)
         .handle((exists, sink) -> {
-          if (!exists) {
-            sink.error(new InvalidParameterException(Map.of("id", List.of("NotExists")), "invalid parameter"));
+          if (!exists.booleanValue()) {
+            sink.error(new InvalidParameterException(Map.of("id", List.of(NOT_EXISTS)), INVALID_PARAMETER));
           } else {
             sink.next(id);
           }
@@ -182,8 +185,8 @@ public class JobExecutorServiceImpl implements JobExecutorService {
   public Mono<Boolean> deleteById(String id) {
     return jobExecutorRepository.existsById(id)
         .handle((exists, sink) -> {
-          if (!exists) {
-            sink.error(new InvalidParameterException(Map.of("id", List.of("NotExists")), "invalid parameter"));
+          if (!exists.booleanValue()) {
+            sink.error(new InvalidParameterException(Map.of("id", List.of(NOT_EXISTS)), INVALID_PARAMETER));
           } else {
             sink.next(id);
           }
@@ -198,8 +201,8 @@ public class JobExecutorServiceImpl implements JobExecutorService {
   public Mono<JobExecutorResponseDTO> toggle(String id, boolean enable) {
     return jobExecutorRepository.existsById(id)
         .handle((exists, sink) -> {
-          if (!exists) {
-            sink.error(new InvalidParameterException(Map.of("id", List.of("NotExists")), "invalid parameter"));
+          if (!exists.booleanValue()) {
+            sink.error(new InvalidParameterException(Map.of("id", List.of(NOT_EXISTS)), INVALID_PARAMETER));
           } else {
             sink.next(id);
           }
@@ -223,8 +226,8 @@ public class JobExecutorServiceImpl implements JobExecutorService {
   public Mono<Boolean> run(String id) {
     return jobExecutorRepository.existsById(id)
         .handle((exists, sink) -> {
-          if (!exists) {
-            sink.error(new InvalidParameterException(Map.of("id", List.of("NotExists")), "invalid parameter"));
+          if (!exists.booleanValue()) {
+            sink.error(new InvalidParameterException(Map.of("id", List.of(NOT_EXISTS)), INVALID_PARAMETER));
           } else {
             sink.next(id);
           }

@@ -14,7 +14,6 @@ import com.nantaaditya.cronscheduler.util.QuartzUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -31,21 +30,22 @@ import reactor.util.function.Tuples;
 public class ClientRequestServiceImpl implements ClientRequestService {
 
   private final ClientRequestRepository clientRequestRepository;
-
   private final JobExecutorRepository jobExecutorRepository;
-
   private final CustomClientRequestRepository customClientRequestRepository;
-
   private final QuartzUtil quartzUtil;
-
   private final TransactionalOperator transactionalOperator;
-
+  
+  private static final String CLIENT_ID = "clientId";
+  private static final String ALREADY_EXISTS = "AlreadyExists";
+  private static final String NOT_EXISTS = "NotExists";
+  private static final String INVALID_PARAMETER = "invalid parameter";
+  
   @Override
   public Mono<ClientResponseDTO> create(CreateClientRequestDTO request) {
     return clientRequestRepository.existsByClientName(request.getClientName())
         .handle((exists, sink) -> {
-          if (exists) {
-            sink.error(new InvalidParameterException(Map.of("clientName", List.of("AlreadyExists")), "invalid parameter"));
+          if (exists.booleanValue()) {
+            sink.error(new InvalidParameterException(Map.of("clientName", List.of(ALREADY_EXISTS)), INVALID_PARAMETER));
           } else {
             sink.next(request);
           }
@@ -58,8 +58,8 @@ public class ClientRequestServiceImpl implements ClientRequestService {
   public Mono<ClientResponseDTO> update(UpdateClientRequestDTO request) {
     return clientRequestRepository.existsByClientName(request.getClientName())
         .handle((exists, sink) -> {
-          if (!exists) {
-            sink.error(new InvalidParameterException(Map.of("clientName", List.of("NotExists")), "invalid parameter"));
+          if (!exists.booleanValue()) {
+            sink.error(new InvalidParameterException(Map.of("clientName", List.of(NOT_EXISTS)), INVALID_PARAMETER));
           } else {
             sink.next(request);
           }
@@ -71,7 +71,7 @@ public class ClientRequestServiceImpl implements ClientRequestService {
                 quartzUtil.updateJob(jobExecutor);
               }
             })
-            .map(tuples -> tuples.getT1())
+            .map(Tuple2::getT1)
         )
         .map(ClientResponseDTO::of);
   }
@@ -114,8 +114,8 @@ public class ClientRequestServiceImpl implements ClientRequestService {
   public Mono<ClientResponseDTO> find(String clientId) {
     return clientRequestRepository.existsById(clientId)
         .handle((exists, sink) -> {
-          if (!exists) {
-            sink.error(new InvalidParameterException(Map.of("clientId", List.of("NotExists")), "invalid parameter"));
+          if (!exists.booleanValue()) {
+            sink.error(new InvalidParameterException(Map.of(CLIENT_ID, List.of(NOT_EXISTS)), INVALID_PARAMETER));
           } else {
             sink.next(clientId);
           }
@@ -128,8 +128,8 @@ public class ClientRequestServiceImpl implements ClientRequestService {
   public Mono<Boolean> delete(String clientId) {
     return clientRequestRepository.existsById(clientId)
         .handle((exists, sink) -> {
-          if (!exists) {
-            sink.error(new InvalidParameterException(Map.of("clientId", List.of("NotExists")), "invalid parameter"));
+          if (!exists.booleanValue()) {
+            sink.error(new InvalidParameterException(Map.of(CLIENT_ID, List.of(NOT_EXISTS)), INVALID_PARAMETER));
           } else {
             sink.next(clientId);
           }
@@ -153,6 +153,6 @@ public class ClientRequestServiceImpl implements ClientRequestService {
   private List<String> getJobExecutorIds(List<JobExecutor> jobExecutors) {
     return jobExecutors.stream()
         .map(JobExecutor::getId)
-        .collect(Collectors.toList());
+        .toList();
   }
 }

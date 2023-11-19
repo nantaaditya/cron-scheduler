@@ -27,7 +27,7 @@ public class QuartzInitializerConfiguration {
     scheduler.start();
 
     jobExecutorRepository.findAllByActiveTrue()
-        .doOnNext(jobExecutor -> quartzUtil.createJob(jobExecutor))
+        .doOnNext(quartzUtil::createJob)
         .subscribe(result -> log.info("#JOB - initialization completed"));
   }
 

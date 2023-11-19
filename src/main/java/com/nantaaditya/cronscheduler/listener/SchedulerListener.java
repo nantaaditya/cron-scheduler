@@ -1,8 +1,6 @@
 package com.nantaaditya.cronscheduler.listener;
 
-import java.util.Map.Entry;
 import lombok.extern.slf4j.Slf4j;
-import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobKey;
 import org.quartz.SchedulerException;
@@ -10,7 +8,9 @@ import org.quartz.Trigger;
 import org.quartz.TriggerKey;
 
 @Slf4j
-public class SchedulerListener implements org.quartz.SchedulerListener {
+public class SchedulerListener
+    extends BaseListener
+    implements org.quartz.SchedulerListener {
 
   @Override
   public void jobScheduled(Trigger trigger) {
@@ -112,19 +112,4 @@ public class SchedulerListener implements org.quartz.SchedulerListener {
     log.info("#SCHEDULER - cleared");
   }
 
-  private String toString(JobDataMap jobDataMap) {
-    StringBuilder sb = new StringBuilder("(");
-
-    int i = 0;
-    for (Entry<String, Object> entry : jobDataMap.entrySet()) {
-      sb.append(entry.getKey()).append(":").append(entry.getValue());
-      if (i != jobDataMap.size() - 1) {
-        sb.append(",");
-      }
-      i++;
-    }
-
-    sb.append(")");
-    return sb.toString();
-  }
 }
