@@ -1,5 +1,7 @@
 package com.nantaaditya.cronscheduler.model.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.nantaaditya.cronscheduler.entity.ClientRequest;
 import com.nantaaditya.cronscheduler.util.CopyUtil;
 import java.util.List;
@@ -9,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
+@JsonInclude(Include.NON_NULL)
 public class ClientResponseDTO {
   private String id;
   private String clientName;
@@ -23,9 +26,9 @@ public class ClientResponseDTO {
   public static ClientResponseDTO of(ClientRequest clientRequest) {
     ClientResponseDTO response = CopyUtil.copy(clientRequest, ClientResponseDTO::new);
     response.setPathParams(clientRequest.getPathParams());
-    response.setQueryParams(clientRequest.getQueryParams());
+    response.setQueryParams(clientRequest.getQueryParamMap());
     response.setHeaders(clientRequest.getHeaders());
-    response.setPayload(clientRequest.getPayload());
+    response.setPayload(clientRequest.getPayloadString());
     return response;
   }
 }

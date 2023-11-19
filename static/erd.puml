@@ -1,0 +1,77 @@
+@startuml
+
+entity client_request {
+  * id
+  --
+  * created_by
+  * created_date
+  * created_time
+  * modified_by
+  * modified_date
+  * modified_time
+  * version
+  client_name
+  http_method
+  base_url
+  api_path
+  path_params
+  query_params
+  headers
+  payload
+}
+
+entity job_executors {
+  * id
+  --
+  * created_by
+  * created_date
+  * created_time
+  * modified_by
+  * modified_date
+  * modified_time
+  * version
+  client_id
+  job_name
+  job_group
+  job_data
+  trigger_cron
+  active
+}
+
+entity job_history {
+  * id
+  --
+  * created_by
+  * created_date
+  * created_time
+  * modified_by
+  * modified_date
+  * modified_time
+  * version
+  job_executor_id
+  executed_date
+  executed_time
+  status
+  trigger_cron
+}
+
+entity job_history_detail {
+  * id
+  --
+  * created_by
+  * created_date
+  * created_time
+  * modified_by
+  * modified_date
+  * modified_time
+  * version
+  job_history_id
+  job_executor_id
+  client_request
+  result_detail
+}
+
+client_request |o..o{ job_executors
+job_history |o..o| job_executors
+job_history |o..o| job_history_detail
+@enduml

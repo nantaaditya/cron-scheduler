@@ -1,13 +1,10 @@
 package com.nantaaditya.cronscheduler.repository;
 
 import com.nantaaditya.cronscheduler.entity.ClientRequest;
-import com.nantaaditya.cronscheduler.entity.JobExecutor;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j

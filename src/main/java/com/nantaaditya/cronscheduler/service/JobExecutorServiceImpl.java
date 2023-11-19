@@ -2,18 +2,18 @@ package com.nantaaditya.cronscheduler.service;
 
 import com.nantaaditya.cronscheduler.entity.ClientRequest;
 import com.nantaaditya.cronscheduler.entity.JobExecutor;
+import com.nantaaditya.cronscheduler.model.constant.InvalidParameterException;
 import com.nantaaditya.cronscheduler.model.request.CreateJobExecutorRequestDTO;
-import com.nantaaditya.cronscheduler.model.request.DeleteJobExecutorRequestDTO;
-import com.nantaaditya.cronscheduler.model.request.GetJobExecutorRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.UpdateJobExecutorRequestDTO;
 import com.nantaaditya.cronscheduler.model.response.JobExecutorResponseDTO;
 import com.nantaaditya.cronscheduler.repository.ClientRequestRepository;
 import com.nantaaditya.cronscheduler.repository.CustomClientRequestRepository;
 import com.nantaaditya.cronscheduler.repository.JobExecutorRepository;
 import com.nantaaditya.cronscheduler.util.QuartzUtil;
-import jakarta.validation.Valid;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,13 +39,31 @@ public class JobExecutorServiceImpl implements JobExecutorService {
 
   @Override
   public Mono<JobExecutorResponseDTO> create(CreateJobExecutorRequestDTO request) {
-    return clientRequestRepository.findById(request.getClientId())
-        .flatMap(tuples -> saveJobExecutor(tuples, request))
-        .as(transactionalOperator::transactional)
-        .doOnNext(tuples ->
-          quartzUtil.createJob(tuples.getT2())
-        )
-        .map(tuples -> JobExecutorResponseDTO.of(tuples.getT2(), tuples.getT1()));
+    return Mono.zip(
+        clientRequestRepository.existsById(request.getClientId()),
+        jobExecutorRepository.existsByJobName(request.getJobName()),
+        Tuples::of
+    )
+      .handle((tuples, sink) -> {
+        if (tuples.getT1() && !tuples.getT2()) {
+          sink.next(request);
+        } else {
+          Map<String, List<String>> errors = new HashMap<>();
+          if (!tuples.getT1())
+            errors.put("clientId", List.of("NotExists"));
+          if (!tuples.getT2())
+            errors.put("jobName", List.of("AlreadyExists"));
+
+          sink.error(new InvalidParameterException(errors, "invalid parameter"));
+        }
+      })
+      .flatMap(r -> clientRequestRepository.findById(request.getClientId()))
+      .flatMap(tuples -> saveJobExecutor(tuples, request))
+      .as(transactionalOperator::transactional)
+      .doOnNext(tuples ->
+        quartzUtil.createJob(tuples.getT2())
+      )
+      .map(tuples -> JobExecutorResponseDTO.of(tuples.getT2(), tuples.getT1()));
   }
 
   private Mono<Tuple2<ClientRequest, JobExecutor>> saveJobExecutor(ClientRequest clientRequest,
@@ -57,13 +75,30 @@ public class JobExecutorServiceImpl implements JobExecutorService {
   @Override
   public Mono<JobExecutorResponseDTO> update(UpdateJobExecutorRequestDTO request) {
     return Mono.zip(
-        jobExecutorRepository.findById(request.getJobExecutorId()),
-        clientRequestRepository.findById(request.getClientId()),
-        Tuples::of
+        clientRequestRepository.existsById(request.getClientId()),
+        jobExecutorRepository.existsById(request.getJobExecutorId())
     )
-        .flatMap(tuples -> update(tuples, request))
-        .doOnNext(tuples -> quartzUtil.updateJob(tuples.getT1()))
-        .map(result -> JobExecutorResponseDTO.of(result.getT1(), result.getT2()));
+      .handle((tuples, sink) -> {
+        if (tuples.getT1() && tuples.getT2()) {
+          sink.next(request);
+        } else {
+          Map<String, List<String>> errors = new HashMap<>();
+          if (!tuples.getT1())
+            errors.put("clientId", List.of("NotExists"));
+          if (!tuples.getT2())
+            errors.put("jobExecutorId", List.of("NotExists"));
+
+          sink.error(new InvalidParameterException(errors, "invalid parameter"));
+        }
+      })
+      .flatMap(r -> Mono.zip(
+          jobExecutorRepository.findById(request.getJobExecutorId()),
+          clientRequestRepository.findById(request.getClientId()),
+          Tuples::of
+      ))
+     .flatMap(tuples -> update(tuples, request))
+     .doOnNext(tuples -> quartzUtil.updateJob(tuples.getT1()))
+     .map(result -> JobExecutorResponseDTO.of(result.getT1(), result.getT2()));
   }
 
   private Mono<Tuple2<JobExecutor, ClientRequest>> update(Tuple2<JobExecutor, ClientRequest> tuples,
@@ -119,10 +154,18 @@ public class JobExecutorServiceImpl implements JobExecutorService {
   }
 
   @Override
-  public Mono<JobExecutorResponseDTO> findById(@Valid GetJobExecutorRequestDTO request) {
-    return customClientRequestRepository.findClientRequestAndJobDetailsByExecutorId(request.getJobExecutorId())
+  public Mono<JobExecutorResponseDTO> findById(String id) {
+    return jobExecutorRepository.existsById(id)
+        .handle((exists, sink) -> {
+          if (!exists) {
+            sink.error(new InvalidParameterException(Map.of("id", List.of("NotExists")), "invalid parameter"));
+          } else {
+            sink.next(id);
+          }
+        })
+        .flatMap(r -> customClientRequestRepository.findClientRequestAndJobDetailsByExecutorId(id))
         .map(clientRequest -> JobExecutorResponseDTO.of(
-            getJobExecutor(clientRequest.getJobExecutors(), request.getJobExecutorId()),
+            getJobExecutor(clientRequest.getJobExecutors(), id),
             clientRequest
             )
         );
@@ -136,19 +179,35 @@ public class JobExecutorServiceImpl implements JobExecutorService {
   }
 
   @Override
-  public Mono<Boolean> deleteById(@Valid DeleteJobExecutorRequestDTO request) {
-    return jobExecutorRepository.deleteById(request.getJobExecutorId())
-        .doOnSuccess(result -> quartzUtil.removeJob(request.getJobExecutorId()))
+  public Mono<Boolean> deleteById(String id) {
+    return jobExecutorRepository.existsById(id)
+        .handle((exists, sink) -> {
+          if (!exists) {
+            sink.error(new InvalidParameterException(Map.of("id", List.of("NotExists")), "invalid parameter"));
+          } else {
+            sink.next(id);
+          }
+        })
+        .flatMap(r -> jobExecutorRepository.deleteById(id))
+        .doOnSuccess(result -> quartzUtil.removeJob(id))
         .map(result -> Boolean.TRUE)
         .onErrorReturn(Boolean.FALSE);
   }
 
   @Override
-  public Mono<JobExecutorResponseDTO> toggle(@Valid GetJobExecutorRequestDTO request, boolean enable) {
-    return customClientRequestRepository.findClientRequestAndJobDetailsByExecutorId(request.getJobExecutorId())
+  public Mono<JobExecutorResponseDTO> toggle(String id, boolean enable) {
+    return jobExecutorRepository.existsById(id)
+        .handle((exists, sink) -> {
+          if (!exists) {
+            sink.error(new InvalidParameterException(Map.of("id", List.of("NotExists")), "invalid parameter"));
+          } else {
+            sink.next(id);
+          }
+        })
+        .flatMap(r -> customClientRequestRepository.findClientRequestAndJobDetailsByExecutorId(id))
         .map(clientRequest -> Tuples.of(
             clientRequest,
-            getJobExecutor(clientRequest.getJobExecutors(), request.getJobExecutorId())
+            getJobExecutor(clientRequest.getJobExecutors(), id)
             )
         )
         .flatMap(tuples -> {
@@ -161,11 +220,19 @@ public class JobExecutorServiceImpl implements JobExecutorService {
   }
 
   @Override
-  public Mono<Boolean> run(@Valid GetJobExecutorRequestDTO request) {
-    return customClientRequestRepository.findClientRequestAndJobDetailsByExecutorId(request.getJobExecutorId())
+  public Mono<Boolean> run(String id) {
+    return jobExecutorRepository.existsById(id)
+        .handle((exists, sink) -> {
+          if (!exists) {
+            sink.error(new InvalidParameterException(Map.of("id", List.of("NotExists")), "invalid parameter"));
+          } else {
+            sink.next(id);
+          }
+        })
+        .flatMap(r -> customClientRequestRepository.findClientRequestAndJobDetailsByExecutorId(id))
         .map(clientRequest -> Tuples.of(
                 clientRequest,
-                getJobExecutor(clientRequest.getJobExecutors(), request.getJobExecutorId())
+                getJobExecutor(clientRequest.getJobExecutors(), id)
             )
         )
         .doOnNext(tuples -> quartzUtil.runNow(tuples.getT2()))

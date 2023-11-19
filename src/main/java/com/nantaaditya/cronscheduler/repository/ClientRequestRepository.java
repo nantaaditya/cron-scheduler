@@ -15,5 +15,5 @@ public interface ClientRequestRepository extends R2dbcRepository<ClientRequest, 
 
   Mono<Boolean> existsByClientName(String clientName);
 
-  Flux<ClientRequest> findAllby(Pageable pageable);
+  Flux<ClientRequest> findBy(Pageable pageable);
 }

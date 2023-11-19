@@ -19,8 +19,9 @@ public class JobHistory extends BaseEntity {
   private LocalDate executedDate;
   private LocalTime executedTime;
   private String status;
+  private String triggerCron;
 
-  public static JobHistory create(String jobExecutorId) {
+  public static JobHistory create(String jobExecutorId, String triggerCron) {
     return JobHistory.builder()
         .id(BaseEntity.generateId())
         .createdBy(BaseEntity.AUDITOR)
@@ -29,6 +30,7 @@ public class JobHistory extends BaseEntity {
         .executedDate(LocalDate.now())
         .executedTime(LocalTime.now())
         .status(JobStatus.STARTING.name())
+        .triggerCron(triggerCron)
         .build();
   }
 }

@@ -52,7 +52,7 @@ create table if not exists job_history
     executed_date   date,
     executed_time   time,
     status          varchar(15),
-    trigger_cron    varchar(10),
+    trigger_cron    varchar(15),
     primary key (id)
 );
 
@@ -73,5 +73,5 @@ create table if not exists job_history_detail
     primary key (id)
 );
 
-create index if not exists idx_clientrequest_name client_request(client_name);
-create index if not exists idx_jobexecutor_name job_executor(job_name);
+create index if not exists idx_clientrequest_name on client_request(client_name);
+create index if not exists idx_jobexecutor_name on job_executor(job_name);

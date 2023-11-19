@@ -1,0 +1,37 @@
+server.port: ${SERVER_PORT:1000}
+
+spring:
+  application.name: cron-scheduler
+  r2dbc:
+    url: ${DB_URL:r2dbc:postgresql://localhost:5432/cron_db}
+    username: ${DB_USER:user}
+    password: ${DB_PASS:password}
+
+logging:
+#  logging.pattern.level: '%5p [${spring.application.name:},%mdc{traceId:-},%mdc{spanId:-}]'
+  level:
+    ROOT: INFO
+    com.nantaaditya: DEBUG
+    org.zalando.logbook: TRACE
+  file.name: logs/${LOG_NAME:cron-scheduler.log}
+  logback.rollingpolicy.max-history: ${MAX_LOG_HISTORY:14}
+
+job.configuration.web-client:
+  connect-time-out: ${CONNECT_TIME_OUT:10}
+  response-time-out: ${RESPONSE_TIME_OUT:10}
+  read-time-out: ${READ_TIME_OUT:10}
+  write-time-out: ${WRITE_TIME_OUT:10}
+
+cron.quartz:
+  thread-pool: ${QUARTZ_THREAD_POOL:20}
+
+management:
+  endpoints.web.exposure.include: '*'
+  metrics.distribution.percentiles-histogram:
+    http.server.requests: true
+  tracing:
+#    enabled: true
+#    propagation.type: b3
+#    brave.span-joining-supported: true
+    sampling.probability: 1.0
+

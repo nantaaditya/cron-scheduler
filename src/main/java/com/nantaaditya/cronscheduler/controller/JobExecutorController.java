@@ -1,14 +1,10 @@
 package com.nantaaditya.cronscheduler.controller;
 
 import com.nantaaditya.cronscheduler.model.request.CreateJobExecutorRequestDTO;
-import com.nantaaditya.cronscheduler.model.request.DeleteJobExecutorRequestDTO;
-import com.nantaaditya.cronscheduler.model.request.GetJobExecutorRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.UpdateJobExecutorRequestDTO;
 import com.nantaaditya.cronscheduler.model.response.JobExecutorResponseDTO;
 import com.nantaaditya.cronscheduler.model.response.Response;
 import com.nantaaditya.cronscheduler.service.JobExecutorService;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +31,7 @@ public class JobExecutorController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE
   )
-  public Mono<Response<JobExecutorResponseDTO>> create(@Valid @RequestBody CreateJobExecutorRequestDTO request) {
+  public Mono<Response<JobExecutorResponseDTO>> create(@RequestBody CreateJobExecutorRequestDTO request) {
     return jobExecutorService.create(request)
         .map(Response::ok);
   }
@@ -44,7 +40,7 @@ public class JobExecutorController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE
   )
-  public Mono<Response<JobExecutorResponseDTO>> update(@Valid @RequestBody UpdateJobExecutorRequestDTO request) {
+  public Mono<Response<JobExecutorResponseDTO>> update(@RequestBody UpdateJobExecutorRequestDTO request) {
     return jobExecutorService.update(request)
         .map(Response::ok);
   }
@@ -53,8 +49,8 @@ public class JobExecutorController {
       produces = MediaType.APPLICATION_JSON_VALUE
   )
   public Mono<Response<List<JobExecutorResponseDTO>>> findAll(
-      @Valid @Min(value = 0, message = "NotValid") @RequestParam int page,
-      @Valid @Min(value = 1, message = "NotValid") @RequestParam int size) {
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "1") int size) {
     return jobExecutorService.findAll(page, size)
         .map(Response::ok);
   }
@@ -63,8 +59,8 @@ public class JobExecutorController {
       value = "/{id}",
       produces = MediaType.APPLICATION_JSON_VALUE
   )
-  public Mono<Response<JobExecutorResponseDTO>> find(@Valid @NotBlank(message = "NotBlank") String id) {
-    return jobExecutorService.findById(new GetJobExecutorRequestDTO(id))
+  public Mono<Response<JobExecutorResponseDTO>> find(@NotBlank(message = "NotBlank") String id) {
+    return jobExecutorService.findById(id)
         .map(Response::ok);
   }
 
@@ -72,8 +68,8 @@ public class JobExecutorController {
       value = "/{id}",
       produces = MediaType.APPLICATION_JSON_VALUE
   )
-  public Mono<Response<Boolean>> delete(@Valid @NotBlank(message = "NotBlank") @PathVariable String id) {
-    return jobExecutorService.deleteById(new DeleteJobExecutorRequestDTO(id))
+  public Mono<Response<Boolean>> delete(@NotBlank(message = "NotBlank") @PathVariable String id) {
+    return jobExecutorService.deleteById(id)
         .map(Response::ok);
   }
 
@@ -81,10 +77,8 @@ public class JobExecutorController {
       value = "/{id}/_toggle/{enable}",
       produces = MediaType.APPLICATION_JSON_VALUE
   )
-  public Mono<Response<JobExecutorResponseDTO>> toggle(
-      @Valid @NotBlank(message = "NotBlank") @PathVariable String id,
-      @Valid @PathVariable boolean enable) {
-    return jobExecutorService.toggle(new GetJobExecutorRequestDTO(id), enable)
+  public Mono<Response<JobExecutorResponseDTO>> toggle(@PathVariable String id, @PathVariable boolean enable) {
+    return jobExecutorService.toggle(id, enable)
         .map(Response::ok);
   }
 
@@ -92,8 +86,8 @@ public class JobExecutorController {
       value = "/{id}/_run",
       produces = MediaType.APPLICATION_JSON_VALUE
   )
-  public Mono<Response<Boolean>> run(@Valid @NotBlank(message = "NotBlank") @PathVariable String id) {
-    return jobExecutorService.run(new GetJobExecutorRequestDTO(id))
+  public Mono<Response<Boolean>> run(@PathVariable String id) {
+    return jobExecutorService.run(id)
         .map(Response::ok);
   }
 }

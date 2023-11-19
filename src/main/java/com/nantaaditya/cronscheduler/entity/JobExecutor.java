@@ -18,10 +18,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.quartz.JobDataMap;
-import org.springframework.data.annotation.Transient;
 import org.springframework.data.relational.core.mapping.Table;
 import org.springframework.util.ObjectUtils;
-import org.springframework.util.StringUtils;
 
 @Data
 @SuperBuilder
@@ -81,36 +79,29 @@ public class JobExecutor extends BaseEntity {
   }
 
   public void loadJobDataMap(JobDataMap jobDataMap) {
-    String clientRequestJson = (String) getJobData(JobDataMapKey.CLIENT_REQUEST);
-    jobDataMap.put(JobDataMapKey.CLIENT_REQUEST, JsonHelper.fromJson(clientRequestJson, ClientRequest.class));
-    jobDataMap.put(JobDataMapKey.JOB_EXECUTOR_ID, getId());
+    Map<String, Object> jobData = JsonHelper.fromJson(this.jobData.asString(), Map.class);
+    jobDataMap.put(JobDataMapKey.JOB_EXECUTOR_ID, jobData.get(JobDataMapKey.JOB_EXECUTOR_ID));
+    jobDataMap.put(JobDataMapKey.CLIENT_REQUEST, jobData.get(JobDataMapKey.CLIENT_REQUEST));
+    jobDataMap.put(JobDataMapKey.CRON_TRIGGER, triggerCron);
   }
 
   public void putJobDataMap(ClientRequest clientRequest) {
     Map<String, Object> map = new HashMap<>();
     map.put(JobDataMapKey.CLIENT_REQUEST, JsonHelper.toJsonString(clientRequest));
+    map.put(JobDataMapKey.CRON_TRIGGER, triggerCron);
     setJobData(JsonHelper.toJson(map));
   }
 
-  @Transient
-  public Map<String, Object> getJobData() {
+  public Map<String, Object> getJobDataMap() {
     if (ObjectUtils.isEmpty(jobData)) return new HashMap<>();
 
     return JsonHelper.fromJson(jobData, new TypeReference<Map<String, Object>>() {});
   }
 
-  @Transient
-  public Object getJobData(String key) {
-    return Optional.ofNullable(getJobData())
+  public Object getJobDataMap(String key) {
+    return Optional.ofNullable(getJobDataMap())
         .map(map -> map.get(key))
         .orElse(null);
   }
 
-  @Transient
-  public Optional<ClientRequest> getClientRequest() {
-    return Optional.ofNullable(getJobData())
-        .map(result -> (String) result.get(JobDataMapKey.CLIENT_REQUEST))
-        .filter(StringUtils::hasLength)
-        .map(clientRequestString -> JsonHelper.fromJson(clientRequestString, ClientRequest.class));
-  }
 }

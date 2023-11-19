@@ -1,5 +1,7 @@
 package com.nantaaditya.cronscheduler.job;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.cronscheduler.entity.ClientRequest;
 import com.nantaaditya.cronscheduler.entity.JobHistory;
 import com.nantaaditya.cronscheduler.entity.JobHistoryDetail;
@@ -12,9 +14,11 @@ import com.nantaaditya.cronscheduler.util.JsonHelper;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
+import io.r2dbc.postgresql.codec.Json;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.DisallowConcurrentExecution;
 import org.quartz.Job;
@@ -28,6 +32,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
+import reactor.util.function.Tuples;
 
 @Slf4j
 @Component
@@ -47,14 +52,18 @@ public class WebClientJob implements Job {
   @Autowired
   private JobHistoryDetailRepository jobHistoryDetailRepository;
 
-  public WebClientJob() {}
+  @Autowired
+  private ObjectMapper objectMapper;
 
   @Override
   public void execute(JobExecutionContext context) throws JobExecutionException {
-    ClientRequest clientRequest = (ClientRequest) context.get(JobDataMapKey.CLIENT_REQUEST);
-    String jobExecutorId = (String) context.get(JobDataMapKey.JOB_EXECUTOR_ID);
+    String clientRequestString = (String) context.getMergedJobDataMap().get(JobDataMapKey.CLIENT_REQUEST);
+    String jobExecutorId = (String) context.getMergedJobDataMap().get(JobDataMapKey.JOB_EXECUTOR_ID);
+    String cronTrigger = (String) context.getMergedJobDataMap().get(JobDataMapKey.CRON_TRIGGER);
 
-    JobHistory jobHistory = JobHistory.create(jobExecutorId);
+    ClientRequest clientRequest = getClientRequest(clientRequestString);
+
+    JobHistory jobHistory = JobHistory.create(jobExecutorId, cronTrigger);
     jobHistoryRepository.save(jobHistory)
         .subscribe(result -> log.info("#JOB - starting {}", jobExecutorId));
 
@@ -65,13 +74,15 @@ public class WebClientJob implements Job {
         .subscribe(result -> log.info("#JOB - running {}", jobExecutorId));
 
     WebClient.RequestBodySpec requestBodySpec = webClient.method(HttpMethod.valueOf(clientRequest.getHttpMethod()))
-        .uri(uriBuilder -> uriBuilder
-            .path(clientRequest.getApiPath())
-            .build()
-        );
+        .uri(uriBuilder -> {
+          if (StringUtils.hasLength(clientRequest.getApiPath())) {
+            return uriBuilder.path(clientRequest.getFullApiPath()).build();
+          }
+          return uriBuilder.build();
+        });
 
-    if (StringUtils.hasLength(clientRequest.getPayload())) {
-      requestBodySpec.bodyValue(clientRequest.getPayload());
+    if (StringUtils.hasLength(clientRequest.getPayloadString())) {
+      requestBodySpec.bodyValue(clientRequest.getPayloadString());
     }
 
     Mono<String> result = requestBodySpec.exchangeToMono(response -> {
@@ -86,29 +97,28 @@ public class WebClientJob implements Job {
           }
         });
 
-    result.subscribe(response -> {
-      log.info("result {}", response);
-
-      jobHistory.setStatus(JobStatus.FINISH.name());
-      jobHistoryRepository.save(jobHistory)
-          .subscribe(r -> log.info("#JOB - finish {}", jobExecutorId));
-
-      JobHistoryDetail jobHistoryDetail = JobHistoryDetail.create(jobHistory.getId(),
-          clientRequest, jobExecutorId, JsonHelper.toJson(Map.of("result", response)));
-      jobHistoryDetailRepository.save(jobHistoryDetail)
-          .subscribe();
-    });
+    result.
+        flatMap(response -> {
+          jobHistory.setStatus(JobStatus.FINISH.name());
+          return jobHistoryRepository.save(jobHistory)
+              .map(jobHistoryResult -> Tuples.of(response, jobHistoryResult));
+        })
+        .flatMap(tuples -> {
+          JobHistoryDetail jobHistoryDetail = JobHistoryDetail.create(jobHistory.getId(),
+              clientRequest, jobExecutorId, JsonHelper.toJson(Map.of("clientResponse", tuples.getT1())));
+          return jobHistoryDetailRepository.save(jobHistoryDetail);
+        }).subscribe();
   }
 
   private WebClient createWebClient(ClientRequest clientRequest) {
     JobProperties.WebClient configuration = jobProperties.getWebClient();
 
     HttpClient httpClient = HttpClient.create()
-        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, configuration.getConnectTimeOut())
-        .responseTimeout(Duration.ofMillis(configuration.getResponseTimeOut()))
+        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, configuration.getConnectTimeOut() * 1000)
+        .responseTimeout(Duration.ofSeconds(configuration.getResponseTimeOut()))
         .doOnConnected(conn -> conn
-            .addHandlerLast(new ReadTimeoutHandler(configuration.getReadTimeOut(), TimeUnit.MILLISECONDS))
-            .addHandlerLast(new WriteTimeoutHandler(configuration.getWriteTimeOut(), TimeUnit.MILLISECONDS)
+            .addHandlerLast(new ReadTimeoutHandler(configuration.getReadTimeOut(), TimeUnit.SECONDS))
+            .addHandlerLast(new WriteTimeoutHandler(configuration.getWriteTimeOut(), TimeUnit.SECONDS)
             )
         );
 
@@ -117,6 +127,33 @@ public class WebClientJob implements Job {
         .defaultHeaders(headers -> headers.putAll(clientRequest.getHeaders()))
         .clientConnector(new ReactorClientHttpConnector(httpClient))
         .build();
+  }
+
+  @SneakyThrows
+  private ClientRequest getClientRequest(String json) {
+    Map<String, Object> map = objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {});
+
+    ClientRequest request = ClientRequest.builder()
+        .clientName((String) map.get("clientName"))
+        .httpMethod((String) map.get("httpMethod"))
+        .baseUrl((String) map.get("baseUrl"))
+        .apiPath((String) map.get("apiPath"))
+        .headers(Json.of(objectMapper.writeValueAsString(map.get("headers"))))
+        .build();
+
+    if (map.get("pathParams") != null) {
+      request.setPathParams(Json.of(objectMapper.writeValueAsString(map.get("pathParams"))));
+    }
+
+    if (map.get("queryParams") != null) {
+      request.setQueryParams(Json.of(objectMapper.writeValueAsString(map.get("queryParams"))));
+    }
+
+    if (map.get("payload") != null) {
+      request.setPayload(Json.of(objectMapper.writeValueAsString(map.get("payload"))));
+    }
+
+    return request;
   }
 
 }

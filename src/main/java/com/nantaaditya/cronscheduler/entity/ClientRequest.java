@@ -1,5 +1,7 @@
 package com.nantaaditya.cronscheduler.entity;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.nantaaditya.cronscheduler.model.request.CreateClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.UpdateClientRequestDTO;
@@ -22,6 +24,7 @@ import org.springframework.util.ObjectUtils;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(value = "client_request")
+@JsonInclude(Include.NON_NULL)
 public class ClientRequest extends BaseEntity {
   private String clientName;
   private String httpMethod;
@@ -34,35 +37,30 @@ public class ClientRequest extends BaseEntity {
   @Transient
   private List<JobExecutor> jobExecutors;
 
-  @Transient
   public Map<String, String> getPathParams() {
     if (ObjectUtils.isEmpty(pathParams)) return null;
 
     return JsonHelper.fromJson(pathParams, new TypeReference<Map<String, String>>() {});
   }
 
-  @Transient
-  public Map<String, String> getQueryParams() {
+  public Map<String, String> getQueryParamMap() {
     if (ObjectUtils.isEmpty(queryParams)) return null;
 
     return JsonHelper.fromJson(queryParams);
   }
 
-  @Transient
   public Map<String, List<String>> getHeaders() {
     if (ObjectUtils.isEmpty(headers)) return null;
 
     return JsonHelper.fromJson(headers, new TypeReference<Map<String, List<String>>>() {});
   }
 
-  @Transient
-  public String getPayload() {
+  public String getPayloadString() {
     if (ObjectUtils.isEmpty(payload)) return null;
     return payload.asString();
   }
 
-  @Transient
-  public String getApiPath() {
+  public String getFullApiPath() {
     if (getPathParams() == null) return apiPath;
 
     getPathParams().entrySet()
