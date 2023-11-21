@@ -127,7 +127,8 @@ public class JobExecutorServiceImpl implements JobExecutorService {
             .collectList()
             .map(clientRequests -> Tuples.of(jobExecutors, clientRequests))
         )
-        .map(tuples -> toResponse(tuples.getT1(), tuples.getT2()));
+        .map(tuples -> toResponse(tuples.getT1(), tuples.getT2()))
+        .switchIfEmpty(Mono.just(List.of()));
   }
 
   private List<JobExecutorResponseDTO> toResponse(List<JobExecutor> jobExecutors, List<ClientRequest> clientRequests) {
@@ -193,8 +194,7 @@ public class JobExecutorServiceImpl implements JobExecutorService {
         })
         .flatMap(r -> jobExecutorRepository.deleteById(id))
         .doOnSuccess(result -> quartzUtil.removeJob(id))
-        .map(result -> Boolean.TRUE)
-        .onErrorReturn(Boolean.FALSE);
+        .map(result -> Boolean.TRUE);
   }
 
   @Override
@@ -239,7 +239,6 @@ public class JobExecutorServiceImpl implements JobExecutorService {
             )
         )
         .doOnNext(tuples -> quartzUtil.runNow(tuples.getT2()))
-        .map(result -> Boolean.TRUE)
-        .onErrorReturn(Boolean.FALSE);
+        .map(result -> Boolean.TRUE);
   }
 }

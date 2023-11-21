@@ -106,7 +106,7 @@ public class ClientRequest extends BaseEntity {
         .modifiedBy((String) rows.get(0).get("c_modified_by"))
         .modifiedDate((LocalDate) rows.get(0).get("c_modified_date"))
         .modifiedTime((LocalTime) rows.get(0).get("c_modified_time"))
-        .version(Long.parseLong((String) rows.get(0).get("c_version")))
+        .version((Long) rows.get(0).get("c_version"))
         .clientName((String) rows.get(0).get("c_client_name"))
         .httpMethod((String) rows.get(0).get("c_http_method"))
         .baseUrl((String) rows.get(0).get("c_base_url"))

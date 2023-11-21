@@ -97,7 +97,8 @@ public class ClientRequestServiceImpl implements ClientRequestService {
     pageRequest.withSort(Sort.by(Direction.ASC, "created_date", "created_time"));
     return clientRequestRepository.findBy(pageRequest)
         .collectList()
-        .map(clientRequests -> CopyUtil.copy(clientRequests, ClientResponseDTO::new, composeResponse()));
+        .map(clientRequests -> CopyUtil.copy(clientRequests, ClientResponseDTO::new, composeResponse()))
+        .switchIfEmpty(Mono.just(List.of()));
   }
 
   private BiFunction<ClientRequest, ClientResponseDTO, ClientResponseDTO> composeResponse() {
@@ -136,8 +137,7 @@ public class ClientRequestServiceImpl implements ClientRequestService {
         })
         .flatMap(r -> customClientRequestRepository.findClientRequestAndJobExecutorsById(clientId))
         .doOnNext(this::deleteJobExecutorAndJobDetail)
-        .map(result -> Boolean.TRUE)
-        .onErrorReturn(Boolean.FALSE);
+        .map(result -> Boolean.TRUE);
   }
 
   private void deleteJobExecutorAndJobDetail(ClientRequest clientRequest) {

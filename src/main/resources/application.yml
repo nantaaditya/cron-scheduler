@@ -4,8 +4,8 @@ spring:
   application.name: cron-scheduler
   r2dbc:
     url: ${DB_URL:r2dbc:postgresql://localhost:5432/cron_db}
-    username: ${DB_USER:user}
-    password: ${DB_PASS:password}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:changeme}
 
 logging:
 #  logging.pattern.level: '%5p [${spring.application.name:},%mdc{traceId:-},%mdc{spanId:-}]'

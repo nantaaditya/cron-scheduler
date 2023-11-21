@@ -19,6 +19,7 @@ import org.springframework.scheduling.quartz.SpringBeanJobFactory;
 @Configuration
 public class QuartzConfiguration {
 
+  @Bean
   public Scheduler scheduler(SchedulerFactoryBean schedulerFactoryBean) throws SchedulerException {
     Scheduler scheduler = schedulerFactoryBean.getScheduler();
     scheduler.getListenerManager().addTriggerListener(new JobTriggerListener());
