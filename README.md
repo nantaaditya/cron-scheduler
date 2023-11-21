@@ -34,3 +34,46 @@ Application Configuration Properties
 ## Swagger URL
 swagger url format `http://HOST:PORT/swagger-ui.html`, <b>[Swagger URL](http://localhost:1000/swagger-ui.html)</b>
 
+## Build & Deploy Image
+Build Jar
+```shell
+mvn install -DskipTests
+```
+
+Build Image
+```shell
+docker build -f .docker/Dockerfile -t nantaaditya/cron-scheduler:0.0.1 .
+```
+
+Run Image
+```shell
+docker run --env-file .deployment/.env.local --name cron-scheduler -p 1000:1000 -m512m nantaaditya/cron-scheduler:0.0.1
+```
+
+## Build & Deploy Openj9 Image
+Build Jar
+```shell
+mvn install -DskipTests
+```
+
+Build Image
+```shell
+docker build -f .docker/Dockerfile-Openj9 -t nantaaditya/cron-scheduler:0.0.1-o9 .
+```
+
+Run Image
+```shell
+docker run --env-file .deployment/.env.local --name cron-scheduler-o9 -p 1000:1000 -m512m nantaaditya/cron-scheduler:0.0.1-o9
+```
+
+## Build & Deploy GraalVM Image
+
+Build Image
+```shell
+docker buildx build -f .docker/Dockerfile-GraalVM -t nantaaditya/cron-scheduler:0.0.1-gvm .
+```
+
+Run Image
+```shell
+docker run --env-file .deployment/.env.local --name cron-scheduler-gvm -p 1000:1000 nantaaditya/cron-scheduler:0.0.1-gvm
+```
