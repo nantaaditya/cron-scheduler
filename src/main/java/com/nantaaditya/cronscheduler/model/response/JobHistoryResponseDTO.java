@@ -23,5 +23,5 @@ public class JobHistoryResponseDTO {
   private String status;
   private String triggerCron;
   private Map<String, Object> clientRequest;
-  private Map<String, Object> result;
+  private Object result;
 }

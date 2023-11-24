@@ -34,6 +34,10 @@ Application Configuration Properties
 ## Swagger URL
 swagger url format `http://HOST:PORT/swagger-ui.html`, <b>[Swagger URL](http://localhost:1000/swagger-ui.html)</b>
 
+## How to Use
+- Create Client Request
+- Create Job Executor
+
 ## Build & Deploy Image
 Build Jar
 ```shell

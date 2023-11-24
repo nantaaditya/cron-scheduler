@@ -1,7 +1,6 @@
 package com.nantaaditya.cronscheduler.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.cronscheduler.entity.JobHistory;
 import com.nantaaditya.cronscheduler.entity.JobHistoryDetail;
 import com.nantaaditya.cronscheduler.model.response.JobHistoryResponseDTO;
@@ -23,8 +22,6 @@ import reactor.core.publisher.Mono;
 public class JobHistoryServiceImpl implements JobHistoryService {
 
   private final CustomJobHistoryRepository customJobHistoryRepository;
-
-  private final ObjectMapper objectMapper;
 
   @Override
   public Mono<List<JobHistoryResponseDTO>> findAll(int page, int size) {
@@ -53,17 +50,13 @@ public class JobHistoryServiceImpl implements JobHistoryService {
             jobHistoryDetail.getClientRequest(),
             new TypeReference<Map<String, Object>>() {})
         )
-        .result(getJobResult(jobHistoryDetail.getResultDetail()))
+        .result(toResult(jobHistoryDetail.getResultDetail()))
         .build();
   }
 
   @SneakyThrows
-  private Map<String, Object> getJobResult(Json result) {
-    Map<String, Object> resultMap = JsonHelper.fromJson(
-        result,
-        new TypeReference<Map<String, Object>>() {}
-    );
-
-    return objectMapper.readValue((String) resultMap.get("clientResponse"), new TypeReference<Map<String, Object>>(){});
+  private Object toResult(Json resultDetail) {
+    Map<String, Object> resultMap = JsonHelper.fromJson(resultDetail.asString(), Map.class);
+    return resultMap.get("clientResponse");
   }
 }
