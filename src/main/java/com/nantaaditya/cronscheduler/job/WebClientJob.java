@@ -12,6 +12,7 @@ import com.nantaaditya.cronscheduler.repository.JobHistoryDetailRepository;
 import com.nantaaditya.cronscheduler.repository.JobHistoryRepository;
 import com.nantaaditya.cronscheduler.util.JsonHelper;
 import io.netty.channel.ChannelOption;
+import io.netty.handler.logging.LogLevel;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import io.r2dbc.postgresql.codec.Json;
@@ -30,8 +31,10 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.zalando.logbook.Logbook;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.transport.logging.AdvancedByteBufFormat;
 import reactor.util.function.Tuples;
 
 @Slf4j
@@ -55,6 +58,9 @@ public class WebClientJob implements Job {
 
   @Autowired
   private ObjectMapper objectMapper;
+
+  @Autowired
+  private Logbook logbook;
 
   @Override
   public void execute(JobExecutionContext context) throws JobExecutionException {
@@ -115,6 +121,7 @@ public class WebClientJob implements Job {
     JobProperties.WebClient configuration = jobProperties.getWebClient();
 
     HttpClient httpClient = HttpClient.create()
+        .wiretap("reactor.netty.http.client.HttpClient", LogLevel.DEBUG, AdvancedByteBufFormat.TEXTUAL)
         .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, configuration.getConnectTimeOut() * 1000)
         .responseTimeout(Duration.ofSeconds(configuration.getResponseTimeOut()))
         .doOnConnected(conn -> conn

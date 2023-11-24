@@ -30,6 +30,7 @@ Application Configuration Properties
 | READ_TIME_OUT             | 10                                        | web client job read time out       |
 | WRITE_TIME_OUT            | 10                                        | web client job write time out      |
 | QUARTZ_THREAD_POOL        | 20                                        | quartz thread pool                 |
+| WEB_CLIENT_JOB_LOG_LEVEL  | DEBUG                                     | web client job log level           |
 
 ## Swagger URL
 swagger url format `http://HOST:PORT/swagger-ui.html`, <b>[Swagger URL](http://localhost:1000/swagger-ui.html)</b>
