@@ -102,7 +102,7 @@ public class ClientRequest extends BaseEntity {
         .id((String) rows.get(0).get("c_id"))
         .createdBy((String) rows.get(0).get("c_created_by"))
         .createdDate((LocalDate) rows.get(0).get("c_created_date"))
-        .createdTime((LocalTime) rows.get(0).get("c_created_tim"))
+        .createdTime((LocalTime) rows.get(0).get("c_created_time"))
         .modifiedBy((String) rows.get(0).get("c_modified_by"))
         .modifiedDate((LocalDate) rows.get(0).get("c_modified_date"))
         .modifiedTime((LocalTime) rows.get(0).get("c_modified_time"))

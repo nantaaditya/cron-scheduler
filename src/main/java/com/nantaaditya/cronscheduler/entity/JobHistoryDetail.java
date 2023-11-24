@@ -2,6 +2,7 @@ package com.nantaaditya.cronscheduler.entity;
 
 import com.nantaaditya.cronscheduler.util.JsonHelper;
 import io.r2dbc.postgresql.codec.Json;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -29,6 +30,13 @@ public class JobHistoryDetail extends BaseEntity{
         .clientRequest(JsonHelper.toJson(clientRequest))
         .jobExecutorId(jobExecutorId)
         .resultDetail(resultDetail)
+        .build();
+  }
+
+  public static JobHistoryDetail from(Map<String, Object> row) {
+    return JobHistoryDetail.builder()
+        .clientRequest((Json) row.get("d_client_request"))
+        .resultDetail((Json) row.get("d_result_detail"))
         .build();
   }
 }

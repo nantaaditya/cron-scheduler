@@ -40,6 +40,7 @@ import reactor.util.function.Tuples;
 public class WebClientJob implements Job {
 
   public static final String WEB_CLIENT_JOB_GROUP = "WebClientJobGroup";
+  public static final String INSTANT_WEB_CLIENT_JOB_GROUP = "InstantWebClientJobGroup";
 
   private WebClient webClient;
 

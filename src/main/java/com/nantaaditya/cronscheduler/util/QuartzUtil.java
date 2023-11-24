@@ -44,14 +44,14 @@ public class QuartzUtil {
     jobExecutor.loadJobDataMap(jobDataMap);
 
     org.quartz.JobDetail job = JobBuilder.newJob(WebClientJob.class)
-        .withIdentity(jobExecutor.getId(), WebClientJob.WEB_CLIENT_JOB_GROUP)
+        .withIdentity(jobExecutor.getId(), runOnce ? WebClientJob.INSTANT_WEB_CLIENT_JOB_GROUP : WebClientJob.WEB_CLIENT_JOB_GROUP)
         .setJobData(jobDataMap)
         .build();
 
     Trigger trigger = null;
     if (runOnce) {
       trigger = TriggerBuilder.newTrigger()
-          .withIdentity(jobExecutor.getId(), WebClientJob.WEB_CLIENT_JOB_GROUP)
+          .withIdentity(jobExecutor.getId(), WebClientJob.INSTANT_WEB_CLIENT_JOB_GROUP)
           .startNow()
           .forJob(job)
           .build();

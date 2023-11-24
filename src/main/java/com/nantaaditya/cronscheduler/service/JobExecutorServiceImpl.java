@@ -19,14 +19,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
-import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 @Slf4j
 @Service
-@Validated
 @RequiredArgsConstructor
 public class JobExecutorServiceImpl implements JobExecutorService {
 
