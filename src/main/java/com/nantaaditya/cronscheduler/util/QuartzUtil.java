@@ -43,28 +43,27 @@ public class QuartzUtil {
     JobDataMap jobDataMap = new JobDataMap();
     jobExecutor.loadJobDataMap(jobDataMap);
 
+    String jobGroup = runOnce ?
+        WebClientJob.INSTANT_WEB_CLIENT_JOB_GROUP : WebClientJob.WEB_CLIENT_JOB_GROUP;
+
     org.quartz.JobDetail job = JobBuilder.newJob(WebClientJob.class)
-        .withIdentity(jobExecutor.getId(), runOnce ? WebClientJob.INSTANT_WEB_CLIENT_JOB_GROUP : WebClientJob.WEB_CLIENT_JOB_GROUP)
+        .withIdentity(jobExecutor.getId(), jobGroup)
         .setJobData(jobDataMap)
         .build();
 
-    Trigger trigger = null;
+    TriggerBuilder<Trigger> triggerBuilder = TriggerBuilder.newTrigger()
+        .withIdentity(jobExecutor.getId(), jobGroup)
+        .forJob(job);
+
     if (runOnce) {
-      trigger = TriggerBuilder.newTrigger()
-          .withIdentity(jobExecutor.getId(), WebClientJob.INSTANT_WEB_CLIENT_JOB_GROUP)
-          .startNow()
-          .forJob(job)
-          .build();
+      triggerBuilder
+          .startNow();
     } else {
-      trigger = TriggerBuilder.newTrigger()
-          .withIdentity(jobExecutor.getId(), WebClientJob.WEB_CLIENT_JOB_GROUP)
-          .startNow()
-          .forJob(job)
-          .withSchedule(CronScheduleBuilder.cronSchedule(jobExecutor.getTriggerCron()))
-          .build();
+      triggerBuilder
+          .withSchedule(CronScheduleBuilder.cronSchedule(jobExecutor.getTriggerCron()));
     }
 
-    return Tuples.of(job, trigger);
+    return Tuples.of(job, triggerBuilder.build());
   }
 
   public void updateJob(JobExecutor jobExecutor) {
@@ -73,7 +72,7 @@ public class QuartzUtil {
   }
 
   public void removeJobs(List<String> jobExecutorIds) {
-    jobExecutorIds.stream()
+    jobExecutorIds
         .forEach(this::removeJob);
   }
 

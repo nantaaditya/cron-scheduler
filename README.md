@@ -39,6 +39,34 @@ swagger url format `http://HOST:PORT/swagger-ui.html`, <b>[Swagger URL](http://l
 - Create Client Request
 - Create Job Executor
 
+## Create Callback Notification
+- create class that implements `NotificationCallback` interface
+- add `@Service` annotation 
+- add `@Primary` annotation to make it primary bean
+Example:
+
+```java
+import com.nantaaditya.cronscheduler.model.dto.NotificationCallbackDTO;
+
+@Service("notificationCallback")
+@Primary
+public class EmailNotificationCallback implements NotificationCallback {
+
+  private final EmailService emailService;
+
+  @Override
+  public Mono<Boolean> notifySuccess(NotificationCallbackDTO notificationCallback) {
+    return emailService.send(notificationCallback);
+  }
+
+  @Override
+  public Mono<Boolean> notifyFailed(NotificationCallbackDTO notificationCallback) {
+    return emailService.send(notificationCallback);
+  }
+}
+```
+
+
 ## Build & Deploy Image
 Build Jar
 ```shell

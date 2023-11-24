@@ -7,9 +7,11 @@ import com.nantaaditya.cronscheduler.entity.JobHistory;
 import com.nantaaditya.cronscheduler.entity.JobHistoryDetail;
 import com.nantaaditya.cronscheduler.model.constant.JobDataMapKey;
 import com.nantaaditya.cronscheduler.model.constant.JobStatus;
+import com.nantaaditya.cronscheduler.model.dto.NotificationCallbackDTO;
 import com.nantaaditya.cronscheduler.properties.JobProperties;
 import com.nantaaditya.cronscheduler.repository.JobHistoryDetailRepository;
 import com.nantaaditya.cronscheduler.repository.JobHistoryRepository;
+import com.nantaaditya.cronscheduler.service.NotificationCallback;
 import com.nantaaditya.cronscheduler.util.JsonHelper;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.logging.LogLevel;
@@ -62,6 +64,9 @@ public class WebClientJob implements Job {
   @Autowired
   private Logbook logbook;
 
+  @Autowired
+  private NotificationCallback notificationCallback;
+
   @Override
   public void execute(JobExecutionContext context) throws JobExecutionException {
     String clientRequestString = (String) context.getMergedJobDataMap().get(JobDataMapKey.CLIENT_REQUEST);
@@ -96,11 +101,21 @@ public class WebClientJob implements Job {
           if (response.statusCode().is2xxSuccessful()) {
             return response
                 .bodyToMono(String.class)
-                .doOnNext(responseBody -> log.info("#JOB - result success", responseBody));
+                .doOnNext(responseBody -> log.info("#JOB - result success {}", responseBody))
+                .flatMap(responseBody -> notificationCallback.notifySuccess(
+                    new NotificationCallbackDTO(jobExecutorId, cronTrigger, clientRequest, responseBody)
+                  )
+                    .map(notificationResponse -> responseBody)
+                );
           } else {
             return response
                 .bodyToMono(String.class)
-                .doOnNext(responseBody -> log.info("#JOB - result failed", responseBody));
+                .doOnNext(responseBody -> log.info("#JOB - result failed {}", responseBody))
+                .flatMap(responseBody -> notificationCallback.notifyFailed(
+                    new NotificationCallbackDTO(jobExecutorId, cronTrigger, clientRequest, responseBody)
+                  )
+                    .map(notificationResponse -> responseBody)
+                );
           }
         });
 
@@ -114,7 +129,8 @@ public class WebClientJob implements Job {
           JobHistoryDetail jobHistoryDetail = JobHistoryDetail.create(jobHistory.getId(),
               clientRequest, jobExecutorId, JsonHelper.toJson(Map.of("clientResponse", tuples.getT1())));
           return jobHistoryDetailRepository.save(jobHistoryDetail);
-        }).subscribe();
+        })
+        .subscribe();
   }
 
   private WebClient createWebClient(ClientRequest clientRequest) {
