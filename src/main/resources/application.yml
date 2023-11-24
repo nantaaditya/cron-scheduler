@@ -13,6 +13,7 @@ logging:
     ROOT: INFO
     com.nantaaditya: DEBUG
     org.zalando.logbook: TRACE
+    reactor.netty.http.client: ${WEB_CLIENT_JOB_LOG_LEVEL:DEBUG}
   file.name: logs/${LOG_NAME:cron-scheduler.log}
   logback.rollingpolicy.max-history: ${MAX_LOG_HISTORY:14}
 
