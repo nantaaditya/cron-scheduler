@@ -48,7 +48,7 @@ Example:
 ```java
 import com.nantaaditya.cronscheduler.model.dto.NotificationCallbackDTO;
 
-@Service("notificationCallback")
+@Service
 @Primary
 public class EmailNotificationCallback implements NotificationCallback {
 

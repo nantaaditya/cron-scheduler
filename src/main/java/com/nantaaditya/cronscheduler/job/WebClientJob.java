@@ -33,7 +33,6 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.zalando.logbook.Logbook;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.transport.logging.AdvancedByteBufFormat;
@@ -60,9 +59,6 @@ public class WebClientJob implements Job {
 
   @Autowired
   private ObjectMapper objectMapper;
-
-  @Autowired
-  private Logbook logbook;
 
   @Autowired
   private NotificationCallback notificationCallback;
