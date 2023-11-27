@@ -1,0 +1,13 @@
+FROM cobaltinc/openj9-17.0.3_7-jre-alpine
+
+ENV TZ=Asia/Jakarta
+ENV JAVA_OPTS='-Xms256m -Xmx512m -XX:+IgnoreUnrecognizedVMOptions -XX:+UseContainerSupport -XX:+IdleTuningCompactOnIdle -XX:+IdleTuningGcOnIdle -Xtune:virtualized'
+
+RUN mkdir app
+RUN mkdir app/logs
+
+ADD target/*.jar app/app.jar
+
+WORKDIR /app
+
+ENTRYPOINT java $JAVA_OPTS -jar app.jar

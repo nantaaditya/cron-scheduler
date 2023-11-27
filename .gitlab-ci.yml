@@ -1,0 +1,3 @@
+include:
+  - project: devops/devops-centralized-pipeline
+    file: gitlab-ci/pipeline-cms-bnc.yml
