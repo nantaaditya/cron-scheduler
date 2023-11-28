@@ -5,6 +5,9 @@ import com.nantaaditya.cronscheduler.model.request.UpdateClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.response.ClientResponseDTO;
 import com.nantaaditya.cronscheduler.model.response.Response;
 import com.nantaaditya.cronscheduler.service.ClientRequestService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +35,11 @@ public class ClientRequestController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE
   )
+  @Operation(summary = "create new web client job")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "successfully create new web client job"),
+      @ApiResponse(responseCode = "400", description = "failed create new web client job")
+  })
   public Mono<Response<ClientResponseDTO>> create(@RequestBody CreateClientRequestDTO request) {
     return clientRequestService.create(request)
         .map(Response::ok);
