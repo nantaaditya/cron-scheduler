@@ -26,7 +26,7 @@ public class CustomJobHistoryRepository {
       """;
 
   public Mono<List<JobHistory>> findAll(int page, int size) {
-    String sql = String.format("%s ORDER BY h.created_date, h.created_time LIMIT %s OFFSET %s", FIND_JOB_HISTORY_AND_DETAIL_SQL, size, (page*size));
+    String sql = String.format("%s ORDER BY h.created_date desc, h.created_time desc LIMIT %s OFFSET %s", FIND_JOB_HISTORY_AND_DETAIL_SQL, size, (page*size));
     return dbClient.sql(sql)
         .fetch()
         .all()
