@@ -30,8 +30,7 @@ public class CustomJobHistoryRepository {
     return dbClient.sql(sql)
         .fetch()
         .all()
-        .bufferUntilChanged()
-        .map(JobHistory::from)
-        .singleOrEmpty();
+        .collectList()
+        .map(JobHistory::from);
   }
 }
