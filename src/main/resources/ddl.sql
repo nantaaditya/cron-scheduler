@@ -33,7 +33,7 @@ create table if not exists job_executor
     job_name      varchar(255),
     job_group     varchar(50),
     job_data      jsonb,
-    trigger_cron  varchar(15),
+    trigger_cron  varchar(255),
     active        boolean,
     primary key (id)
 );
