@@ -1,8 +1,10 @@
 package com.nantaaditya.cronscheduler.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.nantaaditya.cronscheduler.model.constant.InvalidParameterException;
 import com.nantaaditya.cronscheduler.model.request.CreateClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.UpdateClientRequestDTO;
 import com.nantaaditya.cronscheduler.util.JsonHelper;
@@ -13,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.Transient;
@@ -25,6 +28,7 @@ import org.springframework.util.ObjectUtils;
 @AllArgsConstructor
 @Table(value = "client_request")
 @JsonInclude(Include.NON_NULL)
+@EqualsAndHashCode(callSuper = true)
 public class ClientRequest extends BaseEntity {
   private String clientName;
   private String httpMethod;
@@ -35,6 +39,7 @@ public class ClientRequest extends BaseEntity {
   private Json headers;
   private Json payload;
   @Transient
+  @JsonIgnore
   private List<JobExecutor> jobExecutors;
 
   public Map<String, String> getPathParams() {
@@ -70,6 +75,28 @@ public class ClientRequest extends BaseEntity {
     return apiPath;
   }
 
+  public JobExecutor getJobExecutor(String jobExecutorId) {
+    return getJobExecutors()
+        .stream()
+        .filter(je -> je.getId().equals(jobExecutorId))
+        .findFirst()
+        .orElseThrow(() -> new InvalidParameterException(
+            Map.of("jobExecutorId", List.of("NotExists")), "invalid parameter"
+            )
+        );
+  }
+
+  public ClientRequest update(UpdateClientRequestDTO request) {
+    setHttpMethod(request.getHttpMethod());
+    setBaseUrl(request.getBaseUrl());
+    setApiPath(request.getApiPath());
+    setPathParams(JsonHelper.toJson(request.getPathParams()));
+    setQueryParams(JsonHelper.toJson(request.getQueryParams()));
+    setHeaders(JsonHelper.toJson(request.getHeaders()));
+    setPayload(JsonHelper.toJson(request.getPayload()));
+    return this;
+  }
+
   public static ClientRequest create(CreateClientRequestDTO request) {
     return ClientRequest.builder()
         .id(BaseEntity.generateId())
@@ -84,17 +111,6 @@ public class ClientRequest extends BaseEntity {
         .headers(JsonHelper.toJson(request.getHeaders()))
         .payload(JsonHelper.toJson(request.getPayload()))
         .build();
-  }
-
-  public ClientRequest update(UpdateClientRequestDTO request) {
-    setHttpMethod(request.getHttpMethod());
-    setBaseUrl(request.getBaseUrl());
-    setApiPath(request.getApiPath());
-    setPathParams(JsonHelper.toJson(request.getPathParams()));
-    setQueryParams(JsonHelper.toJson(request.getQueryParams()));
-    setHeaders(JsonHelper.toJson(request.getHeaders()));
-    setPayload(JsonHelper.toJson(request.getPayload()));
-    return this;
   }
 
   public static ClientRequest from(List<Map<String, Object>> rows) {

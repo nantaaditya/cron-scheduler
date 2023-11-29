@@ -2,6 +2,7 @@ package com.nantaaditya.cronscheduler.validation;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+import java.util.stream.Stream;
 import org.springframework.http.HttpMethod;
 import org.springframework.util.StringUtils;
 
@@ -11,10 +12,7 @@ public class HttpMethodMustValidValidator implements ConstraintValidator<HttpMet
   public boolean isValid(String s, ConstraintValidatorContext constraintValidatorContext) {
     if (!StringUtils.hasLength(s)) return false;
 
-    try {
-      return HttpMethod.valueOf(s) != null;
-    } catch (Exception ex) {
-      return false;
-    }
+    return Stream.of(HttpMethod.values())
+        .anyMatch(httpMethod -> httpMethod.name().equals(s));
   }
 }

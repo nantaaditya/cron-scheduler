@@ -3,6 +3,7 @@ package com.nantaaditya.cronscheduler.entity;
 import com.github.f4b6a3.tsid.TsidCreator;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -16,6 +17,7 @@ import org.springframework.data.annotation.Version;
 @Data
 @NoArgsConstructor
 @SuperBuilder
+@AllArgsConstructor
 public class BaseEntity {
 
   public static final String AUDITOR = "SYSTEM";

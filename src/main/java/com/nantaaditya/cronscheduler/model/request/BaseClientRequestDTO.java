@@ -6,12 +6,16 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.Map;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.validator.constraints.URL;
 
 @Data
+@SuperBuilder
 @NoArgsConstructor
+@AllArgsConstructor
 public class BaseClientRequestDTO {
   @NotNull(message = "NotNull")
   @HttpMethodMustValid

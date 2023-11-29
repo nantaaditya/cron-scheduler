@@ -59,7 +59,7 @@ public class JobExecutorController {
       value = "/{id}",
       produces = MediaType.APPLICATION_JSON_VALUE
   )
-  public Mono<Response<JobExecutorResponseDTO>> find(@NotBlank(message = "NotBlank") String id) {
+  public Mono<Response<JobExecutorResponseDTO>> find(@NotBlank(message = "NotBlank") @PathVariable String id) {
     return jobExecutorService.findById(id)
         .map(Response::ok);
   }

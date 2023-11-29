@@ -1,6 +1,5 @@
 package com.nantaaditya.cronscheduler.entity;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.nantaaditya.cronscheduler.job.WebClientJob;
 import com.nantaaditya.cronscheduler.model.constant.JobDataMapKey;
 import com.nantaaditya.cronscheduler.model.request.CreateJobExecutorRequestDTO;
@@ -12,9 +11,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.quartz.JobDataMap;
@@ -26,6 +25,7 @@ import org.springframework.util.ObjectUtils;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(value = "job_executor")
+@EqualsAndHashCode(callSuper = true)
 public class JobExecutor extends BaseEntity {
   private String clientId;
   private String jobName;
@@ -37,8 +37,9 @@ public class JobExecutor extends BaseEntity {
   public static JobExecutor create(CreateJobExecutorRequestDTO request, ClientRequest clientRequest) {
     Map<String, Object> map = new HashMap<>();
     String id = BaseEntity.generateId();
-    map.put(JobDataMapKey.CLIENT_REQUEST, JsonHelper.toJsonString(clientRequest));
     map.put(JobDataMapKey.JOB_EXECUTOR_ID, id);
+    map.put(JobDataMapKey.CLIENT_REQUEST, JsonHelper.toJsonString(clientRequest));
+    map.put(JobDataMapKey.CRON_TRIGGER, request.getCronTriggerExpression());
 
     return JobExecutor.builder()
         .id(id)
@@ -55,8 +56,9 @@ public class JobExecutor extends BaseEntity {
 
   public static List<JobExecutor> from(List<Map<String, Object>> rows) {
     return rows.stream()
+        .filter(row -> row.containsKey("e_id") && row.get("e_id") != null)
         .map(JobExecutor::from)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   public static JobExecutor from(Map<String, Object> row) {
@@ -79,23 +81,24 @@ public class JobExecutor extends BaseEntity {
   }
 
   public void loadJobDataMap(JobDataMap jobDataMap) {
-    Map<String, Object> jobData = JsonHelper.fromJson(this.jobData.asString(), Map.class);
+    Map<String, Object> jobData = getJobDataMap();
     jobDataMap.put(JobDataMapKey.JOB_EXECUTOR_ID, jobData.get(JobDataMapKey.JOB_EXECUTOR_ID));
     jobDataMap.put(JobDataMapKey.CLIENT_REQUEST, jobData.get(JobDataMapKey.CLIENT_REQUEST));
     jobDataMap.put(JobDataMapKey.CRON_TRIGGER, triggerCron);
   }
 
   public void putJobDataMap(ClientRequest clientRequest) {
-    Map<String, Object> map = new HashMap<>();
+    Map<String, Object> map = getJobDataMap();
+    map.put(JobDataMapKey.JOB_EXECUTOR_ID, getId());
     map.put(JobDataMapKey.CLIENT_REQUEST, JsonHelper.toJsonString(clientRequest));
-    map.put(JobDataMapKey.CRON_TRIGGER, triggerCron);
+    map.put(JobDataMapKey.CRON_TRIGGER, getTriggerCron());
     setJobData(JsonHelper.toJson(map));
   }
 
   public Map<String, Object> getJobDataMap() {
     if (ObjectUtils.isEmpty(jobData)) return new HashMap<>();
 
-    return JsonHelper.fromJson(jobData, new TypeReference<Map<String, Object>>() {});
+    return JsonHelper.fromJson(jobData.asString(), Map.class);
   }
 
   public Object getJobDataMap(String key) {

@@ -1,0 +1,32 @@
+server.port: 8080
+
+spring:
+  application.name: cron-scheduler
+  r2dbc:
+    url: r2dbc:tc:postgresql:///testdb?TC_IMAGE_TAG=15-alpine
+
+logging:
+  level:
+    ROOT: INFO
+    com.nantaaditya: DEBUG
+    org.zalando.logbook: TRACE
+    reactor.netty.http.client: DEBUG
+  file.name: logs/cron-scheduler.log
+  logback.rollingpolicy.max-history: 14
+
+job.configuration.web-client:
+  connect-time-out: 10
+  response-time-out: 10
+  read-time-out: 10
+  write-time-out: 10
+
+cron.quartz:
+  thread-pool: 5
+
+management:
+  endpoints.web.exposure.include: '*'
+  metrics.distribution.percentiles-histogram:
+    http.server.requests: true
+  tracing:
+    sampling.probability: 1.0
+
