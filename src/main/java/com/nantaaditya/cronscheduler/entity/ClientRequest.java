@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.nantaaditya.cronscheduler.model.constant.InvalidParameterException;
 import com.nantaaditya.cronscheduler.model.request.CreateClientRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.UpdateClientRequestDTO;
 import com.nantaaditya.cronscheduler.util.JsonHelper;
@@ -72,6 +73,17 @@ public class ClientRequest extends BaseEntity {
         .forEach(path -> apiPath.replace("{"+path.getKey()+"}", path.getValue()));
 
     return apiPath;
+  }
+
+  public JobExecutor getJobExecutor(String jobExecutorId) {
+    return getJobExecutors()
+        .stream()
+        .filter(je -> je.getId().equals(jobExecutorId))
+        .findFirst()
+        .orElseThrow(() -> new InvalidParameterException(
+                Map.of("jobExecutorId", List.of("NotExists")), "invalid parameter"
+            )
+        );
   }
 
   public ClientRequest update(UpdateClientRequestDTO request) {
