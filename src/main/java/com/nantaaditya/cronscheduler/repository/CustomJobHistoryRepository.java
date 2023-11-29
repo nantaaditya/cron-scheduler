@@ -14,7 +14,7 @@ import reactor.core.publisher.Mono;
 public class CustomJobHistoryRepository {
 
   private final DatabaseClient dbClient;
-  
+
   private static final String FIND_JOB_HISTORY_AND_DETAIL_SQL = """
       SELECT
       h.id h_id, h.created_by h_created_by, h.created_date h_created_date, h.created_time h_created_time, h.modified_by h_modified_by, h.modified_date h_modified_date, h.modified_time h_modified_time, h.version h_version,
@@ -26,12 +26,11 @@ public class CustomJobHistoryRepository {
       """;
 
   public Mono<List<JobHistory>> findAll(int page, int size) {
-    String sql = String.format("%s ORDER BY h.created_date, h.created_time LIMIT %s OFFSET %s", FIND_JOB_HISTORY_AND_DETAIL_SQL, size, (page*size));
+    String sql = String.format("%s ORDER BY h.created_date desc, h.created_time desc LIMIT %s OFFSET %s", FIND_JOB_HISTORY_AND_DETAIL_SQL, size, (page*size));
     return dbClient.sql(sql)
         .fetch()
         .all()
-        .bufferUntilChanged()
-        .map(JobHistory::from)
-        .singleOrEmpty();
+        .collectList()
+        .map(JobHistory::from);
   }
 }

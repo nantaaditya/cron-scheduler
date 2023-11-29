@@ -21,7 +21,8 @@ public class CustomClientRequestRepository {
       e.id e_id, e.created_by e_created_by, e.created_date e_created_date, e.created_time e_created_time, e.modified_by e_modified_by, e.modified_date e_modified_date, e.modified_time e_modified_time, e.version e_version,
       e.client_id e_client_id, e.job_name e_job_name, e.job_group e_job_group, e.job_data e_job_data, e.trigger_cron e_trigger_cron, e.active e_active
       FROM client_request c
-      JOIN job_executor e ON c.id = e.client_id
+      LEFT JOIN job_executor e
+      ON c.id = e.client_id
       """;
 
   public Mono<ClientRequest> findClientRequestAndJobExecutorsByName(String clientName) {
@@ -29,9 +30,8 @@ public class CustomClientRequestRepository {
         .bind("client_name", clientName)
         .fetch()
         .all()
-        .bufferUntilChanged()
-        .map(ClientRequest::from)
-        .singleOrEmpty();
+        .collectList()
+        .map(ClientRequest::from);
   }
 
   public Mono<ClientRequest> findClientRequestAndJobExecutorsById(String clientId) {
@@ -39,9 +39,8 @@ public class CustomClientRequestRepository {
         .bind("id", clientId)
         .fetch()
         .all()
-        .bufferUntilChanged()
-        .map(ClientRequest::from)
-        .singleOrEmpty();
+        .collectList()
+        .map(ClientRequest::from);
   }
 
   public Mono<ClientRequest> findClientRequestAndJobDetailsByExecutorId(String jobExecutorId) {
@@ -49,9 +48,8 @@ public class CustomClientRequestRepository {
         .bind("id", jobExecutorId)
         .fetch()
         .all()
-        .bufferUntilChanged()
-        .map(ClientRequest::from)
-        .singleOrEmpty();
+        .collectList()
+        .map(ClientRequest::from);
   }
 
 }

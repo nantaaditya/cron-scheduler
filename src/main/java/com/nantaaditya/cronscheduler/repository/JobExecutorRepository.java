@@ -13,6 +13,5 @@ public interface JobExecutorRepository extends R2dbcRepository<JobExecutor, Stri
   Flux<JobExecutor> findAllByActiveTrue();
   Flux<JobExecutor> findAllBy(Pageable pageable);
   Mono<Void> deleteByIdIn(List<String> executorIds);
-  Mono<JobExecutor> findByJobName(String jobName);
   Mono<Boolean> existsByJobName(String jobName);
 }
