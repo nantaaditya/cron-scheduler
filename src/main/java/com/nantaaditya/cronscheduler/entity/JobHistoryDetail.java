@@ -5,6 +5,7 @@ import io.r2dbc.postgresql.codec.Json;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.relational.core.mapping.Table;
@@ -14,6 +15,7 @@ import org.springframework.data.relational.core.mapping.Table;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(value = "job_history_detail")
+@EqualsAndHashCode(callSuper = true)
 public class JobHistoryDetail extends BaseEntity{
   private String jobHistoryId;
   private String jobExecutorId;
