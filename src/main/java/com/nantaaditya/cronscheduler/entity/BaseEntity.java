@@ -1,6 +1,6 @@
 package com.nantaaditya.cronscheduler.entity;
 
-import com.github.f4b6a3.tsid.TsidCreator;
+import com.nantaaditya.cronscheduler.util.IdGenerator;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import lombok.AllArgsConstructor;
@@ -12,6 +12,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.annotation.Version;
 
 @Data
@@ -46,7 +47,8 @@ public class BaseEntity {
   @Version
   private long version;
 
+  @Transient
   public static String generateId() {
-    return TsidCreator.getTsid1024().toLowerCase();
+    return IdGenerator.createId();
   }
 }

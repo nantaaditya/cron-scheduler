@@ -8,7 +8,7 @@ spring:
     password: ${DB_PASS:password}
 
 logging:
-#  logging.pattern.level: '%5p [${spring.application.name:},%mdc{traceId:-},%mdc{spanId:-}]'
+  pattern.level: '%5p [${spring.application.name:},%mdc{traceId:-},%mdc{spanId:-}]'
   level:
     ROOT: INFO
     com.nantaaditya: DEBUG
@@ -31,8 +31,5 @@ management:
   metrics.distribution.percentiles-histogram:
     http.server.requests: true
   tracing:
-#    enabled: true
-#    propagation.type: b3
-#    brave.span-joining-supported: true
     sampling.probability: 1.0
 
