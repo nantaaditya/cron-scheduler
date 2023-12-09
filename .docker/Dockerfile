@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17.0.8.1_1-jre-jammy
 
 MAINTAINER nantaaditya
 
@@ -6,7 +6,7 @@ LABEL CREATOR=nantaaditya
 LABEL PROJECT_NAME=cron-scheduler
 LABEL JDK_VERSION=17
 LABEL JDK_DISTRIBUTION=eclipse-temurin
-LABEL JDK_BUILD_VERSION=17-jre-alpine
+LABEL JDK_BUILD_VERSION=17.0.8.1_1-jre-jammy
 LABEL SPRING_VERSION=3.1.5
 
 ENV TZ=Asia/Jakarta
