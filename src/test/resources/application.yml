@@ -3,9 +3,10 @@ server.port: 8080
 spring:
   application.name: cron-scheduler
   r2dbc:
-    url: r2dbc:tc:postgresql:///testdb?TC_IMAGE_TAG=15-alpine
+    url: r2dbc:tc:postgresql:///testdb?TC_IMAGE_TAG=14-alpine
 
 logging:
+  pattern.level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-},%X{traceFlags}]'
   level:
     ROOT: INFO
     com.nantaaditya: DEBUG
@@ -28,5 +29,6 @@ management:
   metrics.distribution.percentiles-histogram:
     http.server.requests: true
   tracing:
+    propagation.type: w3c,b3,b3_multi
     sampling.probability: 1.0
 

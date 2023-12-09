@@ -12,6 +12,7 @@ import com.nantaaditya.cronscheduler.properties.JobProperties;
 import com.nantaaditya.cronscheduler.repository.JobHistoryDetailRepository;
 import com.nantaaditya.cronscheduler.repository.JobHistoryRepository;
 import com.nantaaditya.cronscheduler.service.NotificationCallback;
+import com.nantaaditya.cronscheduler.util.IdGenerator;
 import com.nantaaditya.cronscheduler.util.JsonHelper;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.logging.LogLevel;
@@ -19,6 +20,7 @@ import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import io.r2dbc.postgresql.codec.Json;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
@@ -28,6 +30,7 @@ import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
@@ -45,6 +48,10 @@ public class WebClientJob implements Job {
 
   public static final String WEB_CLIENT_JOB_GROUP = "WebClientJobGroup";
   public static final String INSTANT_WEB_CLIENT_JOB_GROUP = "InstantWebClientJobGroup";
+  public static final String TRACE_ID_HEADER = "X-B3-TraceId";
+  public static final String PARENT_TRACE_ID_HEADER = "X-B3-ParentSpanId";
+  public static final String SPAN_ID_HEADER = "X-B3-SpanId";
+  public static final String SAMPLED_HEADER = "X-B3-Sampled";
 
   private WebClient webClient;
 
@@ -144,9 +151,19 @@ public class WebClientJob implements Job {
 
     return WebClient.builder()
         .baseUrl(clientRequest.getBaseUrl())
-        .defaultHeaders(headers -> headers.putAll(clientRequest.getHeaders()))
+        .defaultHeaders(headers -> composeHttpHeaders(headers, clientRequest.getHeaders()))
         .clientConnector(new ReactorClientHttpConnector(httpClient))
         .build();
+  }
+
+  private void composeHttpHeaders(HttpHeaders httpHeaders, Map<String, List<String>> headers) {
+    String traceId = IdGenerator.createId();
+
+    httpHeaders.putAll(headers);
+    httpHeaders.put(TRACE_ID_HEADER, List.of(traceId));
+    httpHeaders.put(PARENT_TRACE_ID_HEADER, List.of(traceId));
+    httpHeaders.put(SPAN_ID_HEADER, List.of(IdGenerator.createId()));
+    httpHeaders.put(SAMPLED_HEADER, List.of("1"));
   }
 
   @SneakyThrows

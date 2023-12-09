@@ -8,9 +8,9 @@ spring:
     password: ${DB_PASS:password}
 
 logging:
-#  logging.pattern.level: '%5p [${spring.application.name:},%mdc{traceId:-},%mdc{spanId:-}]'
+  pattern.level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-},%X{traceFlags}]'
   level:
-    ROOT: INFO
+    ROOT: ${APP_LOG_LEVEL:INFO}
     com.nantaaditya: DEBUG
     org.zalando.logbook: TRACE
     reactor.netty.http.client: ${WEB_CLIENT_JOB_LOG_LEVEL:DEBUG}
@@ -31,8 +31,5 @@ management:
   metrics.distribution.percentiles-histogram:
     http.server.requests: true
   tracing:
-#    enabled: true
-#    propagation.type: b3
-#    brave.span-joining-supported: true
     sampling.probability: 1.0
 

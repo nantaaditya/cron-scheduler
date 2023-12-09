@@ -192,9 +192,10 @@ class JobExecutorControllerTest extends BaseController {
         .getResponseBody()
         .doOnNext(result -> log.info("#RESPONSE - {}", result))
         .subscribe();
+
     await("running web client job")
-        .pollDelay(Duration.ofSeconds(3))
-        .timeout(Duration.ofSeconds(5))
+        .pollDelay(Duration.ofSeconds(5))
+        .timeout(Duration.ofSeconds(10))
         .until(() -> Boolean.TRUE);
   }
 

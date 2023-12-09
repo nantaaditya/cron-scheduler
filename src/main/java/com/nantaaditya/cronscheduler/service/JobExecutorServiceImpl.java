@@ -45,19 +45,19 @@ public class JobExecutorServiceImpl implements JobExecutorService {
   @Override
   public Mono<JobExecutorResponseDTO> create(CreateJobExecutorRequestDTO request) {
     return Mono.zip(
-            clientRequestRepository.existsById(request.getClientId()),
-            jobExecutorRepository.existsByJobName(request.getJobName()),
-            Tuples::of
-        )
-        .handle((tuples, sink) -> {
-          if (tuples.getT1().booleanValue() && !tuples.getT2().booleanValue()) {
-            sink.next(request);
-          } else {
-            Map<String, List<String>> errors = new HashMap<>();
-            if (!tuples.getT1().booleanValue())
-              errors.put("clientId", List.of(NOT_EXISTS));
-            if (tuples.getT2().booleanValue())
-              errors.put("jobName", List.of(ALREADY_EXISTS));
+        clientRequestRepository.existsById(request.getClientId()),
+        jobExecutorRepository.existsByJobName(request.getJobName()),
+        Tuples::of
+    )
+      .handle((tuples, sink) -> {
+        if (tuples.getT1().booleanValue() && !tuples.getT2().booleanValue()) {
+          sink.next(request);
+        } else {
+          Map<String, List<String>> errors = new HashMap<>();
+          if (!tuples.getT1().booleanValue())
+            errors.put("clientId", List.of(NOT_EXISTS));
+          if (tuples.getT2().booleanValue())
+            errors.put("jobName", List.of(ALREADY_EXISTS));
 
             sink.error(new InvalidParameterException(errors, INVALID_PARAMETER));
           }
@@ -93,13 +93,13 @@ public class JobExecutorServiceImpl implements JobExecutorService {
             if (!tuples.getT2().booleanValue())
               errors.put("jobExecutorId", List.of(NOT_EXISTS));
 
-            sink.error(new InvalidParameterException(errors, INVALID_PARAMETER));
-          }
-        })
-        .flatMap(r -> customClientRequestRepository.findClientRequestAndJobDetailsByExecutorId(request.getJobExecutorId()))
-        .flatMap(tuples -> update(tuples, request))
-        .doOnNext(tuples -> quartzUtil.updateJob(tuples.getT1()))
-        .map(result -> JobExecutorResponseDTO.of(result.getT1(), result.getT2()));
+          sink.error(new InvalidParameterException(errors, INVALID_PARAMETER));
+        }
+      })
+      .flatMap(r -> customClientRequestRepository.findClientRequestAndJobDetailsByExecutorId(request.getJobExecutorId()))
+      .flatMap(tuples -> update(tuples, request))
+      .doOnNext(tuples -> quartzUtil.updateJob(tuples.getT1()))
+      .map(result -> JobExecutorResponseDTO.of(result.getT1(), result.getT2()));
   }
 
   private Mono<Tuple2<JobExecutor, ClientRequest>> update(ClientRequest clientRequest,

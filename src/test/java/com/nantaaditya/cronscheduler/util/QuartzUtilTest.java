@@ -5,7 +5,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.nantaaditya.cronscheduler.entity.JobExecutor;
-import com.nantaaditya.cronscheduler.util.QuartzUtil;
 import io.r2dbc.postgresql.codec.Json;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;

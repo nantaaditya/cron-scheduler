@@ -1,6 +1,5 @@
 package com.nantaaditya.cronscheduler.listener;
 
-import com.nantaaditya.cronscheduler.listener.SchedulerListener;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

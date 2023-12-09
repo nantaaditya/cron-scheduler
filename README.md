@@ -24,6 +24,7 @@ Application Configuration Properties
 | DB_USER                   | user                                      | application db username credential |
 | DB_PASS                   | password                                  | application db password credential |
 | LOG_NAME                  | cron-scheduler.log                        | application log name               |
+| APP_LOG_LEVEL             | INFO                                      | application log level              |
 | MAX_LOG_HISTORY           | 14                                        | max application log history        |
 | CONNECT_TIME_OUT          | 10                                        | web client job connect time out    |
 | RESPONSE_TIME_OUT         | 10                                        | web client job response time out   |
@@ -33,7 +34,9 @@ Application Configuration Properties
 | WEB_CLIENT_JOB_LOG_LEVEL  | DEBUG                                     | web client job log level           |
 
 ## Swagger URL
-swagger url format `http://HOST:PORT/swagger-ui.html`, <b>[Swagger URL](http://localhost:1000/swagger-ui.html)</b>
+```shell
+http://localhost:{server_port}/swagger-ui.html
+```
 
 ## How to Use
 - Create Client Request

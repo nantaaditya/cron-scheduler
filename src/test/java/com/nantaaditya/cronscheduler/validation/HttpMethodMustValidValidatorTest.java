@@ -2,7 +2,6 @@ package com.nantaaditya.cronscheduler.validation;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import com.nantaaditya.cronscheduler.validation.HttpMethodMustValidValidator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

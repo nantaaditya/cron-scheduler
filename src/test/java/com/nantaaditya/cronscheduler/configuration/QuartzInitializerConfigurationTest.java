@@ -3,7 +3,6 @@ package com.nantaaditya.cronscheduler.configuration;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 
-import com.nantaaditya.cronscheduler.configuration.QuartzInitializerConfiguration;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

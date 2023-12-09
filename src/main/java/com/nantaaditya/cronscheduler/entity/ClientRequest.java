@@ -81,7 +81,7 @@ public class ClientRequest extends BaseEntity {
         .filter(je -> je.getId().equals(jobExecutorId))
         .findFirst()
         .orElseThrow(() -> new InvalidParameterException(
-                Map.of("jobExecutorId", List.of("NotExists")), "invalid parameter"
+            Map.of("jobExecutorId", List.of("NotExists")), "invalid parameter"
             )
         );
   }
