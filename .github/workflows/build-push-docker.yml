@@ -1,0 +1,33 @@
+name: Build & Push Docker Image
+
+on:
+  push:
+    tags:
+      - 'v.*'
+
+jobs:
+  docker_build_push:
+    runs-on: ubuntu-latest
+    name: docker_build
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+      - name: Build project with Maven
+        run: mvn install -DskipTests
+      - name: Build & push Docker image
+        uses: mr-smithers-excellent/docker-build-push@v6
+        with:
+          image: nantaaditya/cron-scheduler
+          registry: docker.io
+          dockerfile: .docker/Dockerfile
+          multiPlatform: true
+          platform: linux/amd64,linux/arm64,linux/arm/v7
+          addLatest: true
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}

@@ -28,6 +28,17 @@ RUN --mount=type=cache,target=${MAVEN_CONFIG} mvn -X -Pnative native:compile
 # The deployment Image
 FROM docker.io/oraclelinux:9-slim
 
+MAINTAINER nantaaditya
+
+LABEL CREATOR=nantaaditya
+LABEL PROJECT_NAME=cron-scheduler
+LABEL JDK_VERSION=17
+LABEL JDK_DISTRIBUTION=eclipse-temurin
+LABEL JDK_BUILD_VERSION=17-jre-alpine
+LABEL SPRING_VERSION=3.1.5
+
+ENV TZ=Asia/Jakarta
+
 RUN mkdir app
 RUN mkdir app/logs
 
