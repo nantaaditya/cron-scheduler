@@ -49,7 +49,7 @@ public class JobHistory extends BaseEntity {
         .map(JobHistory::from)
         .collect(Collectors.toCollection(LinkedList::new));
   }
-  
+
   public static JobHistory from(Map<String, Object> row) {
     return JobHistory.builder()
         .id((String) row.get("h_id"))

@@ -17,7 +17,7 @@ create table if not exists client_request
     headers       jsonb,
     payload       jsonb,
     primary key (id)
-);
+    );
 
 create table if not exists job_executor
 (
@@ -36,7 +36,7 @@ create table if not exists job_executor
     trigger_cron  varchar(255),
     active        boolean,
     primary key (id)
-);
+    );
 
 create table if not exists job_history
 (
@@ -54,7 +54,7 @@ create table if not exists job_history
     status          varchar(15),
     trigger_cron    varchar(255),
     primary key (id)
-);
+    );
 
 create table if not exists job_history_detail
 (
@@ -71,7 +71,7 @@ create table if not exists job_history_detail
     client_request  jsonb,
     result_detail   jsonb,
     primary key (id)
-);
+    );
 
 create index if not exists idx_clientrequest_name on client_request(client_name);
 create index if not exists idx_jobexecutor_name on job_executor(job_name);

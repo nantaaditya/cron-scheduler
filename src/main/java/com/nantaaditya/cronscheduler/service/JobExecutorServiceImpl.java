@@ -59,16 +59,16 @@ public class JobExecutorServiceImpl implements JobExecutorService {
           if (tuples.getT2().booleanValue())
             errors.put("jobName", List.of(ALREADY_EXISTS));
 
-          sink.error(new InvalidParameterException(errors, INVALID_PARAMETER));
-        }
-      })
-      .flatMap(r -> clientRequestRepository.findById(request.getClientId()))
-      .flatMap(tuples -> saveJobExecutor(tuples, request))
-      .as(transactionalOperator::transactional)
-      .doOnNext(tuples ->
-        quartzUtil.createJob(tuples.getT2())
-      )
-      .map(tuples -> JobExecutorResponseDTO.of(tuples.getT2(), tuples.getT1()));
+            sink.error(new InvalidParameterException(errors, INVALID_PARAMETER));
+          }
+        })
+        .flatMap(r -> clientRequestRepository.findById(request.getClientId()))
+        .flatMap(tuples -> saveJobExecutor(tuples, request))
+        .as(transactionalOperator::transactional)
+        .doOnNext(tuples ->
+            quartzUtil.createJob(tuples.getT2())
+        )
+        .map(tuples -> JobExecutorResponseDTO.of(tuples.getT2(), tuples.getT1()));
   }
 
   private Mono<Tuple2<ClientRequest, JobExecutor>> saveJobExecutor(ClientRequest clientRequest,
@@ -80,18 +80,18 @@ public class JobExecutorServiceImpl implements JobExecutorService {
   @Override
   public Mono<JobExecutorResponseDTO> update(UpdateJobExecutorRequestDTO request) {
     return Mono.zip(
-        clientRequestRepository.existsById(request.getClientId()),
-        jobExecutorRepository.existsById(request.getJobExecutorId())
-    )
-      .handle((tuples, sink) -> {
-        if (tuples.getT1().booleanValue() && tuples.getT2().booleanValue()) {
-          sink.next(request);
-        } else {
-          Map<String, List<String>> errors = new HashMap<>();
-          if (!tuples.getT1().booleanValue())
-            errors.put("clientId", List.of(NOT_EXISTS));
-          if (!tuples.getT2().booleanValue())
-            errors.put("jobExecutorId", List.of(NOT_EXISTS));
+            clientRequestRepository.existsById(request.getClientId()),
+            jobExecutorRepository.existsById(request.getJobExecutorId())
+        )
+        .handle((tuples, sink) -> {
+          if (tuples.getT1().booleanValue() && tuples.getT2().booleanValue()) {
+            sink.next(request);
+          } else {
+            Map<String, List<String>> errors = new HashMap<>();
+            if (!tuples.getT1().booleanValue())
+              errors.put("clientId", List.of(NOT_EXISTS));
+            if (!tuples.getT2().booleanValue())
+              errors.put("jobExecutorId", List.of(NOT_EXISTS));
 
           sink.error(new InvalidParameterException(errors, INVALID_PARAMETER));
         }
@@ -168,8 +168,8 @@ public class JobExecutorServiceImpl implements JobExecutorService {
         })
         .flatMap(r -> customClientRequestRepository.findClientRequestAndJobDetailsByExecutorId(id))
         .map(clientRequest -> JobExecutorResponseDTO.of(
-            getJobExecutor(clientRequest.getJobExecutors(), id),
-            clientRequest
+                getJobExecutor(clientRequest.getJobExecutors(), id),
+                clientRequest
             )
         );
   }
@@ -208,8 +208,8 @@ public class JobExecutorServiceImpl implements JobExecutorService {
         })
         .flatMap(r -> customClientRequestRepository.findClientRequestAndJobDetailsByExecutorId(id))
         .map(clientRequest -> Tuples.of(
-            clientRequest,
-            getJobExecutor(clientRequest.getJobExecutors(), id)
+                clientRequest,
+                getJobExecutor(clientRequest.getJobExecutors(), id)
             )
         )
         .flatMap(tuples -> {

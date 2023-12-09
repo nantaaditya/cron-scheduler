@@ -44,9 +44,9 @@ http://localhost:{server_port}/swagger-ui.html
 
 ## Create Callback Notification
 - create class that implements `NotificationCallback` interface
-- add `@Service` annotation 
+ - add `@Service` annotation
 - add `@Primary` annotation to make it primary bean
-Example:
+  Example:
 
 ```java
 import com.nantaaditya.cronscheduler.model.dto.NotificationCallbackDTO;
