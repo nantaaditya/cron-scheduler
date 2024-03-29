@@ -33,4 +33,5 @@ public class BaseClientRequestDTO {
   @NotNull(message = "NotNull")
   private Map<String, List<String>> headers;
   private Object payload;
+  private int timeoutInMillis;
 }

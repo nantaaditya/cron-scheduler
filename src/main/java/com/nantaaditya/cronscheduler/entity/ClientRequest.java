@@ -38,6 +38,7 @@ public class ClientRequest extends BaseEntity {
   private Json queryParams;
   private Json headers;
   private Json payload;
+  private int timeoutInMillis;
   @Transient
   @JsonIgnore
   private List<JobExecutor> jobExecutors;
@@ -94,6 +95,7 @@ public class ClientRequest extends BaseEntity {
     setQueryParams(JsonHelper.toJson(request.getQueryParams()));
     setHeaders(JsonHelper.toJson(request.getHeaders()));
     setPayload(JsonHelper.toJson(request.getPayload()));
+    setTimeoutInMillis(request.getTimeoutInMillis());
     return this;
   }
 
@@ -110,6 +112,7 @@ public class ClientRequest extends BaseEntity {
         .queryParams(JsonHelper.toJson(request.getQueryParams()))
         .headers(JsonHelper.toJson(request.getHeaders()))
         .payload(JsonHelper.toJson(request.getPayload()))
+        .timeoutInMillis(request.getTimeoutInMillis())
         .build();
   }
 

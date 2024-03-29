@@ -70,8 +70,6 @@ public class WebClientJobListener {
   @Autowired
   private NotificationCallback notificationCallback;
 
-  private WebClient webClient; //NOSONAR
-
   public static final String TRACE_ID_HEADER = "X-B3-TraceId";
   public static final String PARENT_TRACE_ID_HEADER = "X-B3-ParentSpanId";
   public static final String SPAN_ID_HEADER = "X-B3-SpanId";
@@ -112,15 +110,24 @@ public class WebClientJobListener {
 
   private WebClient createWebClient(ClientRequest clientRequest) {
     JobProperties.WebClient configuration = jobProperties.getWebClient();
+    int jobTimeOutInMillis = clientRequest.getTimeoutInMillis();
+
+    int connectTimeOut = jobTimeOutInMillis == 0 ?
+        configuration.getConnectTimeOut() * 1000: jobTimeOutInMillis;
+    Duration responseTimeOut = jobTimeOutInMillis == 0 ?
+        Duration.ofSeconds(configuration.getResponseTimeOut()) : Duration.ofMillis(jobTimeOutInMillis);
+    ReadTimeoutHandler readTimeoutHandler = jobTimeOutInMillis == 0 ?
+        new ReadTimeoutHandler(configuration.getReadTimeOut(), TimeUnit.SECONDS) : new ReadTimeoutHandler(jobTimeOutInMillis, TimeUnit.MILLISECONDS);
+    WriteTimeoutHandler writeTimeoutHandler = jobTimeOutInMillis == 0 ?
+        new WriteTimeoutHandler(configuration.getWriteTimeOut(), TimeUnit.SECONDS) : new WriteTimeoutHandler(jobTimeOutInMillis, TimeUnit.MILLISECONDS);
 
     HttpClient httpClient = HttpClient.create()
         .wiretap("reactor.netty.http.client.HttpClient", LogLevel.DEBUG, AdvancedByteBufFormat.TEXTUAL)
-        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, configuration.getConnectTimeOut() * 1000)
-        .responseTimeout(Duration.ofSeconds(configuration.getResponseTimeOut()))
+        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeOut)
+        .responseTimeout(responseTimeOut)
         .doOnConnected(conn -> conn
-            .addHandlerLast(new ReadTimeoutHandler(configuration.getReadTimeOut(), TimeUnit.SECONDS))
-            .addHandlerLast(new WriteTimeoutHandler(configuration.getWriteTimeOut(), TimeUnit.SECONDS)
-            )
+            .addHandlerLast(readTimeoutHandler)
+            .addHandlerLast(writeTimeoutHandler)
         );
 
     return WebClient.builder()

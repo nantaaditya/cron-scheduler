@@ -16,6 +16,7 @@ public class ReactorJobExecutor {
     return Mono.using(
         () -> {
           log.info("#REACTOR - executor start");
+          log.debug("#REACTOR - request {} timeout {}", resource, timeout);
           return resource;
         },
         source -> Mono.just(source)

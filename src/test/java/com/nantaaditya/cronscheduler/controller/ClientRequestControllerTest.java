@@ -35,6 +35,7 @@ class ClientRequestControllerTest extends BaseController {
       .apiPath("/")
       .headers(Map.of(HttpHeaders.CONTENT_TYPE, List.of(MediaType.APPLICATION_JSON_VALUE)))
       .clientName("mock-bin")
+      .timeoutInMillis(5000)
       .build();
 
   private UpdateClientRequestDTO updateRequest = UpdateClientRequestDTO.builder()
