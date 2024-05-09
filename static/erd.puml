@@ -17,6 +17,7 @@ entity client_request {
   path_params
   query_params
   headers
+  timeout_in_millis
   payload
 }
 

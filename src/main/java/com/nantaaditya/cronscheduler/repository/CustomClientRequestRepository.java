@@ -17,7 +17,7 @@ public class CustomClientRequestRepository {
   private static final String FIND_CLIENT_REQUEST_AND_JOB_DETAILS_SQL = """
       SELECT
       c.id c_id, c.created_by c_created_by, c.created_date c_created_date, c.created_time c_created_time, c.modified_by c_modified_by, c.modified_date c_modified_date, c.modified_time c_modified_time, c.version c_version,
-      c.client_name c_client_name, c.http_method c_http_method, c.base_url c_base_url, c.api_path c_api_path, c.path_params c_path_params, c.query_params c_query_params, c.headers c_headers, c.payload c_payload,
+      c.client_name c_client_name, c.http_method c_http_method, c.base_url c_base_url, c.api_path c_api_path, c.path_params c_path_params, c.query_params c_query_params, c.headers c_headers, c.payload c_payload, c.timeout_in_millis c_timeout_in_millis,
       e.id e_id, e.created_by e_created_by, e.created_date e_created_date, e.created_time e_created_time, e.modified_by e_modified_by, e.modified_date e_modified_date, e.modified_time e_modified_time, e.version e_version,
       e.client_id e_client_id, e.job_name e_job_name, e.job_group e_job_group, e.job_data e_job_data, e.trigger_cron e_trigger_cron, e.active e_active
       FROM client_request c

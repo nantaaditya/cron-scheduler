@@ -16,6 +16,7 @@ create table if not exists client_request
     query_params  jsonb,
     headers       jsonb,
     payload       jsonb,
+    timeout_in_millis int default 0,
     primary key (id)
 );
 

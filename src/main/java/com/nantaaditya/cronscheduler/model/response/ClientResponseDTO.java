@@ -21,6 +21,7 @@ public class ClientResponseDTO {
   private Map<String, String> pathParams;
   private Map<String, String> queryParams;
   private Map<String, List<String>> headers;
+  private int timeoutInMillis;
   private Object payload;
 
   public static ClientResponseDTO of(ClientRequest clientRequest) {
@@ -29,6 +30,7 @@ public class ClientResponseDTO {
     response.setQueryParams(clientRequest.getQueryParamMap());
     response.setHeaders(clientRequest.getHeaders());
     response.setPayload(clientRequest.getPayloadString());
+    response.setTimeoutInMillis(clientRequest.getTimeoutInMillis());
     return response;
   }
 }

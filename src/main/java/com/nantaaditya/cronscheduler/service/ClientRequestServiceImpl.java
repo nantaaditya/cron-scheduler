@@ -107,6 +107,7 @@ public class ClientRequestServiceImpl implements ClientRequestService {
       response.setQueryParams(clientRequest.getQueryParamMap());
       response.setHeaders(clientRequest.getHeaders());
       response.setPayload(clientRequest.getPayloadString());
+      response.setTimeoutInMillis(clientRequest.getTimeoutInMillis());
       return response;
     };
   }
