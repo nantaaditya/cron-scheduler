@@ -17,7 +17,6 @@ import com.nantaaditya.cronscheduler.util.JsonHelper;
 import com.nantaaditya.cronscheduler.util.ReactorEventBus;
 import com.nantaaditya.cronscheduler.util.ReactorJobExecutor;
 import io.netty.channel.ChannelOption;
-import io.netty.handler.logging.LogLevel;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import java.time.Duration;
@@ -43,7 +42,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.transport.logging.AdvancedByteBufFormat;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
