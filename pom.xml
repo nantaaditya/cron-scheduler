@@ -27,6 +27,7 @@
     <springdoc.version>2.2.0</springdoc.version>
     <testcontainers.version>1.18.0</testcontainers.version>
     <tsid.version>5.2.5</tsid.version>
+    <wiremock.version>3.5.4</wiremock.version>
     <sonar.exclusions>
       **/entity/**,
       **/model/**,
@@ -77,10 +78,6 @@
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-registry-prometheus</artifactId>
       <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.projectreactor</groupId>
-      <artifactId>reactor-core-micrometer</artifactId>
     </dependency>
     <dependency>
       <groupId>org.zalando</groupId>
@@ -164,6 +161,12 @@
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
       <version>${awaitility.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock</artifactId>
+      <version>${wiremock.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

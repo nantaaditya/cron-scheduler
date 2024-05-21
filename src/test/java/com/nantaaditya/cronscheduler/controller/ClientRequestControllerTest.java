@@ -140,7 +140,7 @@ class ClientRequestControllerTest extends BaseController {
   @Order(7)
   void find_failed() {
     webTestClient.get()
-        .uri("/api/client_request/2")
+        .uri("/api/client_request/3")
         .exchange()
         .expectStatus().is4xxClientError()
         .returnResult(new ParameterizedTypeReference<Response>() {})
@@ -153,7 +153,7 @@ class ClientRequestControllerTest extends BaseController {
   @Order(8)
   void delete_failed() {
     webTestClient.delete()
-        .uri("/api/client_request/2")
+        .uri("/api/client_request/3")
         .exchange()
         .expectStatus().is4xxClientError()
         .returnResult(new ParameterizedTypeReference<Response>() {})
