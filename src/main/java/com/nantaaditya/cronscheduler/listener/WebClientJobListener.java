@@ -36,6 +36,8 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.zalando.logbook.Logbook;
+import org.zalando.logbook.netty.LogbookClientHandler;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -69,6 +71,9 @@ public class WebClientJobListener {
 
   @Autowired
   private NotificationCallback notificationCallback;
+
+  @Autowired
+  private Logbook logbook;
 
   public static final String TRACE_ID_HEADER = "X-B3-TraceId";
   public static final String PARENT_TRACE_ID_HEADER = "X-B3-ParentSpanId";
@@ -122,12 +127,12 @@ public class WebClientJobListener {
         new WriteTimeoutHandler(configuration.getWriteTimeOut(), TimeUnit.SECONDS) : new WriteTimeoutHandler(jobTimeOutInMillis, TimeUnit.MILLISECONDS);
 
     HttpClient httpClient = HttpClient.create()
-        .wiretap("reactor.netty.http.client.HttpClient", LogLevel.DEBUG, AdvancedByteBufFormat.TEXTUAL)
         .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeOut)
         .responseTimeout(responseTimeOut)
         .doOnConnected(conn -> conn
             .addHandlerLast(readTimeoutHandler)
             .addHandlerLast(writeTimeoutHandler)
+            .addHandlerLast(new LogbookClientHandler(logbook))
         );
 
     return WebClient.builder()
@@ -167,6 +172,7 @@ public class WebClientJobListener {
       if (response.statusCode().is2xxSuccessful()) {
         return response
           .bodyToMono(String.class)
+          .defaultIfEmpty("")
           .doOnNext(responseBody -> log.info("#JOB - result success {}", responseBody))
           .flatMap(responseBody -> notificationCallback.notifySuccess(
               new NotificationCallbackDTO(jobExecutorId, cronTrigger, clientRequest, responseBody)
@@ -176,6 +182,7 @@ public class WebClientJobListener {
       } else {
         return response
           .bodyToMono(String.class)
+          .defaultIfEmpty("")
           .doOnNext(responseBody -> log.info("#JOB - result failed {}", responseBody))
           .flatMap(responseBody -> notificationCallback.notifyFailed(
               new NotificationCallbackDTO(jobExecutorId, cronTrigger, clientRequest, responseBody)
@@ -196,12 +203,12 @@ public class WebClientJobListener {
               .map(jobHistoryResult -> Tuples.of(response, jobHistoryResult));
         })
         .flatMap(tuple -> {
-          JobHistory jobHistory = tuples.getT1();
+          JobHistory jobHistory = tuple.getT2();
           JobHistoryDetail jobHistoryDetail = JobHistoryDetail.create(
               jobHistory.getId(),
               clientRequest,
               jobExecutorId,
-              JsonHelper.toJson(Map.of("clientResponse", tuples.getT1()))
+              JsonHelper.toJson(Map.of("clientResponse", tuple.getT1()))
           );
           return jobHistoryDetailRepository.save(jobHistoryDetail);
         });
