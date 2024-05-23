@@ -1,7 +1,6 @@
 package com.nantaaditya.cronscheduler.util;
 
 import java.time.Duration;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
