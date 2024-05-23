@@ -15,6 +15,7 @@ public class NoOpNotificationCallbackImpl implements
 
   @Override
   public Mono<Boolean> notifyFailed(NotificationCallbackDTO notificationCallback) {
+    log.warn("#NoOpNotification - notify failed");
     return Mono.just(Boolean.TRUE);
   }
 }

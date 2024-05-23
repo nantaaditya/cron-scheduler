@@ -10,4 +10,8 @@ public class IdGenerator {
   public static String createId() {
     return TsidCreator.getTsid256().toLowerCase();
   }
+
+  public static long createLongId() {
+    return TsidCreator.getTsid256().toLong();
+  }
 }

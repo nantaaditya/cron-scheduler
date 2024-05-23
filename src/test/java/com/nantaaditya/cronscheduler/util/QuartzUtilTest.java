@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.nantaaditya.cronscheduler.entity.JobExecutor;
+import io.micrometer.tracing.TraceContext;
 import io.r2dbc.postgresql.codec.Json;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,12 @@ class QuartzUtilTest {
   @Mock
   private Scheduler scheduler;
 
+  @Mock
+  private TraceUtil traceUtil;
+
+  @Mock
+  private TraceContext traceContext;
+
   @Test
   @SneakyThrows
   void runNow() {
@@ -44,6 +51,7 @@ class QuartzUtilTest {
         .triggerCron("0 0/5 0 ? * * *")
         .build();
 
+    when(traceUtil.getTraceContext()).thenReturn(traceContext);
     when(scheduler.scheduleJob(any(JobDetail.class), any(Trigger.class)))
         .thenThrow(new SchedulerException("failed"));
     quartzUtil.runNow(jobExecutor);

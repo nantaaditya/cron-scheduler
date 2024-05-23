@@ -22,7 +22,8 @@ class ReactorJobExecutorTest {
       return str;
     });
 
-    StepVerifier.create(ReactorJobExecutor.execute(callback, "str", Duration.ofSeconds(1)))
-        .verifyError(TimeoutException.class);
+    StepVerifier.create(ReactorJobExecutor.execute(callback, "str", Mono.just("fallback"), Duration.ofSeconds(1)))
+        .expectNext("fallback")
+        .verifyComplete();
   }
 }

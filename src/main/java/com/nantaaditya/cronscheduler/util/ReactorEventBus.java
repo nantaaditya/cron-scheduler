@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.EmitResult;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
@@ -15,7 +16,11 @@ public class ReactorEventBus {
       log.warn("#REACTOR - event payload is null");
       return;
     }
-    events.tryEmitNext(event).orThrow();
+    EmitResult emitResult = events.tryEmitNext(event);
+    if (emitResult.isFailure()) {
+      log.error("#REACTOR - failed emit event {}, status {}", event, emitResult);
+      emitResult.orThrow();
+    }
   }
 
   public <E> Flux<E> consume(Sinks.Many<E> events, Scheduler scheduler) {

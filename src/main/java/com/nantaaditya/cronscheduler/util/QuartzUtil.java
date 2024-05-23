@@ -2,6 +2,8 @@ package com.nantaaditya.cronscheduler.util;
 
 import com.nantaaditya.cronscheduler.entity.JobExecutor;
 import com.nantaaditya.cronscheduler.job.WebClientJob;
+import com.nantaaditya.cronscheduler.model.constant.JobDataMapKey;
+import io.micrometer.tracing.TraceContext;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +25,7 @@ import reactor.util.function.Tuples;
 public class QuartzUtil {
 
   private final Scheduler scheduler;
+  private final TraceUtil traceUtil;
 
   public void createJob(JobExecutor jobExecutor) {
     if (!jobExecutor.isActive()) return;
@@ -42,6 +45,11 @@ public class QuartzUtil {
   private Tuple2<org.quartz.JobDetail, Trigger> buildJobDetailAndTrigger(JobExecutor jobExecutor, boolean runOnce) {
     JobDataMap jobDataMap = new JobDataMap();
     jobExecutor.loadJobDataMap(jobDataMap);
+
+    // set up trace context
+    TraceContext traceContext = traceUtil.getTraceContext();
+    jobDataMap.put(JobDataMapKey.TRACE_ID, traceContext.traceId());
+    jobDataMap.put(JobDataMapKey.SPAN_ID, traceContext.spanId());
 
     String jobGroup = runOnce ?
         WebClientJob.INSTANT_WEB_CLIENT_JOB_GROUP : WebClientJob.WEB_CLIENT_JOB_GROUP;
