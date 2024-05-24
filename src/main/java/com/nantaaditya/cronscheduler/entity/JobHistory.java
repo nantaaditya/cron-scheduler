@@ -1,5 +1,6 @@
 package com.nantaaditya.cronscheduler.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.nantaaditya.cronscheduler.model.constant.JobStatus;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -29,6 +30,7 @@ public class JobHistory extends BaseEntity {
   private String triggerCron;
 
   @Transient
+  @JsonIgnore
   private JobHistoryDetail jobHistoryDetail;
 
   public static JobHistory create(String jobExecutorId, String triggerCron) {

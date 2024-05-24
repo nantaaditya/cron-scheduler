@@ -21,7 +21,7 @@ public class CustomJobHistoryRepository {
       h.job_executor_id h_job_executor_id, h.executed_date h_executed_date, h.executed_time h_executed_time, h.status h_status, h.trigger_cron h_trigger_cron,
       d.client_request d_client_request, d.result_detail d_result_detail
       FROM job_history h
-      JOIN job_history_detail d
+      LEFT JOIN job_history_detail d
       ON h.id=d.job_history_id
       """;
 

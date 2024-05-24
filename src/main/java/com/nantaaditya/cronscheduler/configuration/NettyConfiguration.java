@@ -1,13 +1,18 @@
 package com.nantaaditya.cronscheduler.configuration;
 
+import com.nantaaditya.cronscheduler.listener.WebClientJobListener;
+import com.nantaaditya.cronscheduler.util.IdGenerator;
+import io.micrometer.tracing.internal.EncodingUtils;
+import java.util.Optional;
 import org.springframework.boot.web.embedded.netty.NettyReactiveWebServerFactory;
 import org.springframework.boot.web.embedded.netty.NettyServerCustomizer;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
+import org.zalando.logbook.HttpRequest;
 import org.zalando.logbook.Logbook;
 import org.zalando.logbook.LogbookCreator;
-import org.zalando.logbook.core.Conditions;
 import org.zalando.logbook.core.DefaultHttpLogWriter;
 import org.zalando.logbook.core.DefaultSink;
 import org.zalando.logbook.json.JsonHttpLogFormatter;
@@ -18,11 +23,19 @@ import reactor.netty.http.server.HttpServer;
 public class NettyConfiguration implements WebServerFactoryCustomizer<NettyReactiveWebServerFactory> {
 
   @Bean
+  @Primary
   public Logbook logbook() {
     return LogbookCreator.builder()
-        .condition(Conditions.requestTo("/api/**"))
+        .correlationId(NettyConfiguration::composeCorrelationId)
         .sink(new DefaultSink(new JsonHttpLogFormatter(), new DefaultHttpLogWriter()))
         .build();
+  }
+
+  private static String composeCorrelationId(HttpRequest request) {
+    return Optional.ofNullable(request)
+        .map(HttpRequest::getHeaders)
+        .map(httpHeaders -> httpHeaders.getFirst(WebClientJobListener.TRACE_ID_HEADER))
+        .orElseGet(() -> EncodingUtils.fromLong(IdGenerator.createLongId()));
   }
 
   @Override
@@ -31,7 +44,6 @@ public class NettyConfiguration implements WebServerFactoryCustomizer<NettyReact
   }
 
   class EventLoopNettyCustomizer implements NettyServerCustomizer {
-
     @Override
     public HttpServer apply(HttpServer httpServer) {
       return httpServer

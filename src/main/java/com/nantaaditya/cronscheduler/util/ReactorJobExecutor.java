@@ -12,7 +12,8 @@ public class ReactorJobExecutor {
 
   private ReactorJobExecutor() {}
 
-  public static <T, R> Mono<T> execute(Function<R, Mono<T>> callback, R resource, Duration timeout) {
+  public static <T, R> Mono<T> execute(Function<R, Mono<T>> callback, R resource,
+      Mono<T> fallback, Duration timeout) {
     return Mono.using(
         () -> {
           log.info("#REACTOR - executor start");
@@ -23,7 +24,11 @@ public class ReactorJobExecutor {
             .publishOn(Schedulers.single())
             .flatMap(callback)
             .timeout(timeout)
-            .doOnError(TimeoutException.class, error -> log.error("#Reactor - timeout when execute, ", error)),
+            .doOnError(TimeoutException.class, error -> log.error("#REACTOR - timeout when execute, ", error))
+            .onErrorResume(error -> {
+              log.error("#REACTOR - executor error, ", error);
+              return fallback;
+            }),
         source -> log.info("#REACTOR - executor finish")
     );
   }

@@ -1,7 +1,6 @@
 package com.nantaaditya.cronscheduler.util;
 
 import java.time.Duration;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,7 +21,8 @@ class ReactorJobExecutorTest {
       return str;
     });
 
-    StepVerifier.create(ReactorJobExecutor.execute(callback, "str", Duration.ofSeconds(1)))
-        .verifyError(TimeoutException.class);
+    StepVerifier.create(ReactorJobExecutor.execute(callback, "str", Mono.just("fallback"), Duration.ofSeconds(1)))
+        .expectNext("fallback")
+        .verifyComplete();
   }
 }

@@ -1,7 +1,11 @@
 package com.nantaaditya.cronscheduler.controller;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.awaitility.Awaitility.await;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.nantaaditya.cronscheduler.model.request.CreateJobExecutorRequestDTO;
 import com.nantaaditya.cronscheduler.model.request.UpdateJobExecutorRequestDTO;
 import com.nantaaditya.cronscheduler.model.response.JobExecutorResponseDTO;
@@ -14,10 +18,12 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatus;
 
 @Slf4j
 @Order(value = 2)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@WireMockTest(httpPort = 8000)
 class JobExecutorControllerTest extends BaseController {
 
   private CreateJobExecutorRequestDTO createRequest = CreateJobExecutorRequestDTO.builder()
@@ -112,7 +118,7 @@ class JobExecutorControllerTest extends BaseController {
   @Test
   @Order(4)
   void update_failed() {
-    updateRequest.setJobExecutorId("2");
+    updateRequest.setJobExecutorId("3");
 
     webTestClient.put()
         .uri("/api/job_executor")
@@ -129,7 +135,7 @@ class JobExecutorControllerTest extends BaseController {
   @Order(4)
   void update_failed2() {
     updateRequest.setJobExecutorId("1");
-    updateRequest.setClientId("2");
+    updateRequest.setClientId("3");
 
     webTestClient.put()
         .uri("/api/job_executor")
@@ -172,7 +178,7 @@ class JobExecutorControllerTest extends BaseController {
   @Order(7)
   void find_empty() {
     webTestClient.get()
-        .uri("/api/job_executor/2")
+        .uri("/api/job_executor/3")
         .exchange()
         .expectStatus().is4xxClientError()
         .returnResult(new ParameterizedTypeReference<Response<JobExecutorResponseDTO>>() {})
@@ -200,10 +206,33 @@ class JobExecutorControllerTest extends BaseController {
   }
 
   @Test
+  @Order(8)
+  void run_noResponse() {
+    stubFor(
+        get("/api/no-response")
+            .willReturn(aResponse().withStatus(HttpStatus.OK.value()))
+    );
+
+    webTestClient.get()
+        .uri("/api/job_executor/2/_run")
+        .exchange()
+        .expectStatus().isOk()
+        .returnResult(new ParameterizedTypeReference<Response<Boolean>>() {})
+        .getResponseBody()
+        .doOnNext(result -> log.info("#RESPONSE - {}", result))
+        .subscribe();
+
+    await("running web client job")
+        .pollDelay(Duration.ofSeconds(5))
+        .timeout(Duration.ofSeconds(10))
+        .until(() -> Boolean.TRUE);
+  }
+
+  @Test
   @Order(9)
   void run_failed() {
     webTestClient.get()
-        .uri("/api/job_executor/2/_run")
+        .uri("/api/job_executor/3/_run")
         .exchange()
         .expectStatus().is4xxClientError()
         .returnResult(new ParameterizedTypeReference<Response<Boolean>>() {})
@@ -229,7 +258,7 @@ class JobExecutorControllerTest extends BaseController {
   @Order(10)
   void toggle_failed() {
     webTestClient.put()
-        .uri("/api/job_executor/2/_toggle/true")
+        .uri("/api/job_executor/3/_toggle/true")
         .exchange()
         .expectStatus().is4xxClientError()
         .returnResult(new ParameterizedTypeReference<Response<JobExecutorResponseDTO>>() {})
@@ -255,7 +284,7 @@ class JobExecutorControllerTest extends BaseController {
   @Order(11)
   void delete_failed() {
     webTestClient.delete()
-        .uri("/api/job_executor/2")
+        .uri("/api/job_executor/3")
         .exchange()
         .expectStatus().is4xxClientError()
         .returnResult(new ParameterizedTypeReference<Response<Boolean>>() {})
