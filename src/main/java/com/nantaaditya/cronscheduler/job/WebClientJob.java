@@ -8,7 +8,9 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 @Component
@@ -26,7 +28,9 @@ public class WebClientJob implements Job {
 
   @Override
   public void execute(JobExecutionContext context) throws JobExecutionException {
-    reactorEventBus.publish(webClientJobSink, context);
+    Mono.fromRunnable(() -> reactorEventBus.publish(webClientJobSink, context))
+      .publishOn(Schedulers.single())
+      .subscribe();
   }
 
 }

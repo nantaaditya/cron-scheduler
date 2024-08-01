@@ -1,12 +1,15 @@
-FROM cobaltinc/openj9-17.0.3_7-jre-alpine
+FROM ibm-semeru-runtimes:open-17.0.10_7-jre-jammy
 
 MAINTAINER nantaaditya
 
-LABEL CREATOR=nantaaditya
-LABEL PROJECT_NAME=cron-scheduler
+LABEL org.opencontainers.image.authors=nantaaditya
+LABEL org.opencontainers.image.url=https://hub.docker.com/repository/docker/nantaaditya/cron-scheduler/
+LABEL org.opencontainers.image.source=https://github.com/nantaaditya/cron-scheduler
+LABEL org.opencontainers.image.title=cron-scheduler
+LABEL org.opencontainers.image.version=v.0.1.3
 LABEL JDK_VERSION=17
 LABEL JDK_DISTRIBUTION=eclipse-temurin
-LABEL JDK_BUILD_VERSION=17-jre-alpine
+LABEL JDK_BUILD_VERSION=17.0.10_7-jre-jammy
 LABEL SPRING_VERSION=3.1.5
 
 ENV TZ=Asia/Jakarta
