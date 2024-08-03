@@ -11,15 +11,21 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 @Component
 public class ReactorEventBus {
+
+  private final Object lock = new Object();
+
   public <E> void publish(Sinks.Many<E> events, E event) {
     if (events == null || event == null) {
       log.warn("#REACTOR - event payload is null");
       return;
     }
-    EmitResult emitResult = events.tryEmitNext(event);
-    if (emitResult.isFailure()) {
-      log.error("#REACTOR - failed emit event {}, status {}", event, emitResult);
-      emitResult.orThrow();
+
+    synchronized (lock) {
+      EmitResult emitResult = events.tryEmitNext(event);
+      if (emitResult.isFailure()) {
+        log.error("#REACTOR - failed emit event {}, status {}", event, emitResult);
+        emitResult.orThrow();
+      }
     }
   }
 

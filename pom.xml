@@ -13,7 +13,7 @@
 
   <groupId>com.nantaaditya</groupId>
   <artifactId>cron-scheduler</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.1.3</version>
 
   <name>cron-scheduler</name>
   <description>cron-scheduler</description>
