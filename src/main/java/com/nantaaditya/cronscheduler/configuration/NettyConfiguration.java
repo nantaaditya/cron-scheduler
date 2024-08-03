@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.zalando.logbook.HttpRequest;
 import org.zalando.logbook.Logbook;
 import org.zalando.logbook.LogbookCreator;
+import org.zalando.logbook.core.DefaultHttpLogFormatter;
 import org.zalando.logbook.core.DefaultHttpLogWriter;
 import org.zalando.logbook.core.DefaultSink;
 import org.zalando.logbook.json.JsonHttpLogFormatter;
@@ -27,7 +28,7 @@ public class NettyConfiguration implements WebServerFactoryCustomizer<NettyReact
   public Logbook logbook() {
     return LogbookCreator.builder()
         .correlationId(NettyConfiguration::composeCorrelationId)
-        .sink(new DefaultSink(new JsonHttpLogFormatter(), new DefaultHttpLogWriter()))
+        .sink(new DefaultSink(new DefaultHttpLogFormatter(), new DefaultHttpLogWriter()))
         .build();
   }
 

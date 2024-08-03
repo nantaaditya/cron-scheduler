@@ -20,6 +20,8 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.relational.core.mapping.Table;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.ObjectUtils;
 
 @Data
@@ -46,19 +48,36 @@ public class ClientRequest extends BaseEntity {
   public Map<String, String> getPathParams() {
     if (ObjectUtils.isEmpty(pathParams)) return null;
 
-    return JsonHelper.fromJson(pathParams, new TypeReference<Map<String, String>>() {});
+    return JsonHelper.fromJson(pathParams);
   }
 
-  public Map<String, String> getQueryParamMap() {
+  public Map<String, String> getQueryParams() {
     if (ObjectUtils.isEmpty(queryParams)) return null;
 
     return JsonHelper.fromJson(queryParams);
+  }
+
+  public MultiValueMap<String, String> getQueryParamMultiMap() {
+    Map<String, String> queryParams = getQueryParams();
+    MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+
+    if (ObjectUtils.isEmpty(queryParams)) return params;
+
+    for (Map.Entry<String, String> entry : queryParams.entrySet()) {
+      params.add(entry.getKey(), entry.getValue());
+    }
+    return params;
   }
 
   public Map<String, List<String>> getHeaders() {
     if (ObjectUtils.isEmpty(headers)) return null;
 
     return JsonHelper.fromJson(headers, new TypeReference<Map<String, List<String>>>() {});
+  }
+
+  public Map<String, Object> getPayload() {
+    if (ObjectUtils.isEmpty(payload)) return null;
+    return JsonHelper.fromJson(payload, new TypeReference<Map<String, Object>>() {});
   }
 
   public String getPayloadString() {

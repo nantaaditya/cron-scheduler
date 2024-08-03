@@ -152,7 +152,7 @@ public class WebClientJobListener {
         .doOnConnected(conn -> conn
             .addHandlerLast(readTimeoutHandler)
             .addHandlerLast(writeTimeoutHandler)
-            .addHandlerLast(new LogbookClientHandler(logbook))
+            .addHandlerFirst(new LogbookClientHandler(logbook))
         );
 
     return WebClient.builder()
@@ -174,7 +174,10 @@ public class WebClientJobListener {
     WebClient.RequestBodySpec requestBodySpec = tuples.getT2().method(HttpMethod.valueOf(clientRequest.getHttpMethod()))
         .uri(uriBuilder -> {
           if (StringUtils.hasLength(clientRequest.getApiPath())) {
-            return uriBuilder.path(clientRequest.getFullApiPath()).build();
+            uriBuilder = uriBuilder.path(clientRequest.getFullApiPath());
+          }
+          if (clientRequest.getQueryParams() != null) {
+            uriBuilder = uriBuilder.queryParams(clientRequest.getQueryParamMultiMap());
           }
           return uriBuilder.build();
         });
