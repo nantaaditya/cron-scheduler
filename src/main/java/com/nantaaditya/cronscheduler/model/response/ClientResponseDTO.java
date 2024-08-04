@@ -27,7 +27,7 @@ public class ClientResponseDTO {
   public static ClientResponseDTO of(ClientRequest clientRequest) {
     ClientResponseDTO response = CopyUtil.copy(clientRequest, ClientResponseDTO::new);
     response.setPathParams(clientRequest.getPathParams());
-    response.setQueryParams(clientRequest.getQueryParamMap());
+    response.setQueryParams(clientRequest.getQueryParams());
     response.setHeaders(clientRequest.getHeaders());
     response.setPayload(clientRequest.getPayloadString());
     response.setTimeoutInMillis(clientRequest.getTimeoutInMillis());

@@ -104,7 +104,7 @@ public class ClientRequestServiceImpl implements ClientRequestService {
   private BiFunction<ClientRequest, ClientResponseDTO, ClientResponseDTO> composeResponse() {
     return (ClientRequest clientRequest, ClientResponseDTO response) -> {
       response.setPathParams(clientRequest.getPathParams());
-      response.setQueryParams(clientRequest.getQueryParamMap());
+      response.setQueryParams(clientRequest.getQueryParams());
       response.setHeaders(clientRequest.getHeaders());
       response.setPayload(clientRequest.getPayloadString());
       response.setTimeoutInMillis(clientRequest.getTimeoutInMillis());

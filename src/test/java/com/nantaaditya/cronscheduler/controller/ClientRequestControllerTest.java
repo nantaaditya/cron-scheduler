@@ -34,6 +34,7 @@ class ClientRequestControllerTest extends BaseController {
       .baseUrl("https://8b3817ceae844514bd45aad137f8ee1d.api.mockbin.io")
       .apiPath("/")
       .headers(Map.of(HttpHeaders.CONTENT_TYPE, List.of(MediaType.APPLICATION_JSON_VALUE)))
+      .queryParams(Map.of("size", "5"))
       .clientName("mock-bin")
       .timeoutInMillis(5000)
       .build();
@@ -43,6 +44,7 @@ class ClientRequestControllerTest extends BaseController {
       .baseUrl("https://8b3817ceae844514bd45aad137f8ee1d.api.mockbin.io")
       .apiPath("/")
       .headers(Map.of(HttpHeaders.CONTENT_TYPE, List.of(MediaType.APPLICATION_JSON_VALUE)))
+      .queryParams(Map.of("size", "5"))
       .clientName("mock-bin")
       .build();
 

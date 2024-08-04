@@ -82,9 +82,9 @@ insert into client_request
      client_name, http_method, base_url, api_path, path_params, query_params, headers, payload)
     values
     ('1', 'SYSTEM', now(), now(), 'SYSTEM', now(), now(), 0,
-     'client-name', 'GET', 'https://8b3817ceae844514bd45aad137f8ee1d.api.mockbin.io', '/', null, null, '{"Content-Type":["application/json"]}', null),
+     'client-name', 'GET', 'https://8b3817ceae844514bd45aad137f8ee1d.api.mockbin.io', '/', null, '{"size":5}', '{"Content-Type":["application/json"]}', null),
     ('2', 'SYSTEM', now(), now(), 'SYSTEM', now(), now(), 0,
-     'client-name-2', 'GET', 'http://localhost:8000', '/api/no-response', null, null, '{"Content-Type":["application/json"]}', null);;
+     'client-name-2', 'GET', 'http://localhost:8000', '/api/no-response', null, '{"size":5}', '{"Content-Type":["application/json"]}', null);;
 
 insert into job_executor
 (id, created_by, created_date, created_time, modified_by, modified_date, modified_time, version,
