@@ -3,8 +3,11 @@ package com.nantaaditya.cronscheduler.configuration;
 import com.nantaaditya.cronscheduler.listener.JobListener;
 import com.nantaaditya.cronscheduler.listener.JobTriggerListener;
 import com.nantaaditya.cronscheduler.listener.SchedulerListener;
+import com.nantaaditya.cronscheduler.properties.QuartzProperties;
+import java.util.Properties;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
+import org.quartz.impl.StdSchedulerFactory;
 import org.quartz.spi.JobFactory;
 import org.quartz.spi.TriggerFiredBundle;
 import org.springframework.beans.BeansException;
@@ -29,12 +32,26 @@ public class QuartzConfiguration {
   }
 
   @Bean
-  public SchedulerFactoryBean schedulerFactoryBean(ApplicationContext applicationContext) {
+  public SchedulerFactoryBean schedulerFactoryBean(ApplicationContext applicationContext,
+      QuartzProperties quartzProperties) {
     SchedulerFactoryBean quartzScheduler = new SchedulerFactoryBean();
     quartzScheduler.setJobFactory(jobFactory(applicationContext));
     quartzScheduler.setSchedulerName("quartz-scheduler");
+    quartzScheduler.setQuartzProperties(quartzProperties(quartzProperties));
 
     return quartzScheduler;
+  }
+
+  private Properties quartzProperties(QuartzProperties props) {
+    Properties quartzProperties = new Properties();
+    quartzProperties.put(StdSchedulerFactory.PROP_SCHED_INSTANCE_NAME, props.getInstanceName());
+    quartzProperties.put(StdSchedulerFactory.PROP_THREAD_POOL_CLASS, props.getThreadPoolClass());
+    quartzProperties.put(StdSchedulerFactory.PROP_SCHED_THREAD_NAME, props.getThreadName());
+    quartzProperties.put(StdSchedulerFactory.PROP_THREAD_POOL_PREFIX + ".threadCount", String.valueOf(props.getThreadCount()));
+    quartzProperties.put(StdSchedulerFactory.PROP_THREAD_POOL_PREFIX + ".threadPriority", String.valueOf(props.getThreadPriority()));
+    quartzProperties.put(StdSchedulerFactory.PROP_JOB_STORE_PREFIX + ".class", props.getJobStoreClass());
+    quartzProperties.put(StdSchedulerFactory.PROP_JOB_STORE_PREFIX + ".misfireThreshold", String.valueOf(props.getMisfireThreshold()));
+    return quartzProperties;
   }
 
   public JobFactory jobFactory(ApplicationContext applicationContext) {
