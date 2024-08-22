@@ -23,21 +23,27 @@ Application Configuration Properties
 
 ## Environment Variable
 
-| Environment Variable Name | Default Value                             | Description                        |
-|---------------------------|-------------------------------------------|------------------------------------|
-| SERVER_PORT               | 1000                                      | application port                   |
-| DB_URL                    | r2dbc:postgresql://localhost:5432/cron_db | application db host                |
-| DB_USER                   | user                                      | application db username credential |
-| DB_PASS                   | password                                  | application db password credential |
-| LOG_NAME                  | cron-scheduler.log                        | application log name               |
-| APP_LOG_LEVEL             | INFO                                      | application log level              |
-| MAX_LOG_HISTORY           | 14                                        | max application log history        |
-| CONNECT_TIME_OUT          | 10                                        | web client job connect time out    |
-| RESPONSE_TIME_OUT         | 10                                        | web client job response time out   |
-| READ_TIME_OUT             | 10                                        | web client job read time out       |
-| WRITE_TIME_OUT            | 10                                        | web client job write time out      |
-| QUARTZ_THREAD_POOL        | 20                                        | quartz thread pool                 |
-| WEB_CLIENT_JOB_LOG_LEVEL  | DEBUG                                     | web client job log level           |
+| Environment Variable Name | Default Value                             | Description                             |
+|---------------------------|-------------------------------------------|-----------------------------------------|
+| SERVER_PORT               | 1000                                      | application port                        |
+| DB_URL                    | r2dbc:postgresql://localhost:5432/cron_db | application db host                     |
+| DB_USER                   | user                                      | application db username credential      |
+| DB_PASS                   | password                                  | application db password credential      |
+| LOG_NAME                  | cron-scheduler.log                        | application log name                    |
+| APP_LOG_LEVEL             | INFO                                      | application log level                   |
+| MAX_LOG_HISTORY           | 14                                        | max application log history             |
+| CONNECT_TIME_OUT          | 10                                        | web client job connect time out         |
+| RESPONSE_TIME_OUT         | 10                                        | web client job response time out        |
+| READ_TIME_OUT             | 10                                        | web client job read time out            |
+| WRITE_TIME_OUT            | 10                                        | web client job write time out           |
+| QUARTZ_INSTANCE_NAME      | cron-scheduler                            | quartz instance name                    |
+| QUARTZ_THREAD_POOL_CLASS  | org.quartz.simpl.SimpleThreadPool         | quartz thread pool implementation class |
+| QUARTZ_THREAD_NAME        | cron-scheduler                            | quartz thread pool name                 |
+| QUARTZ_THREAD_COUNT       | 20                                        | quartz thread pool size                 |
+| QUARTZ_THREAD_PRIORITY    | 5                                         | quartz thread priority                  |
+| QUARTZ_JOB_STORE_CLASS    | org.quartz.simpl.RAMJobStore              | quartz job store implementation class   |
+| QUARTZ_MISFIRE_THRESHOLD  | 60000                                     | quartz misfire threshold                |
+| WEB_CLIENT_JOB_LOG_LEVEL  | DEBUG                                     | web client job log level                |
 
 ## Swagger URL
 ```shell
