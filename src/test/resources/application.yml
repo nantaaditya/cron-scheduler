@@ -22,7 +22,13 @@ job.configuration.web-client:
   write-time-out: 10
 
 cron.quartz:
-  thread-pool: 5
+  instance-name: cron-scheduler
+  thread-pool-class:  org.quartz.simpl.SimpleThreadPool
+  thread-name: cron-scheduler
+  thread-count: 5
+  thread-priority: 5
+  job-store-class: org.quartz.simpl.RAMJobStore
+  misfire-threshold: 60000
 
 management:
   endpoints.web.exposure.include: '*'

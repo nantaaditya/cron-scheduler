@@ -7,13 +7,19 @@ spring project for cron scheduler, by default it only rest api call job using we
 ## Configuration Properties
 Application Configuration Properties
 
-| Property Name                                  | Property Type | Default Value | Description                                |
-|------------------------------------------------|---------------|---------------|--------------------------------------------|
-| cron.quartz.thread-pool                        | int           | 20            | quartz thread pool size                    |
-| job.configuration.web-client.connect-time-out  | int           | 10            | web client connect time out configuration  |
-| job.configuration.web-client.response-time-out | int           | 10            | web client response time out configuration |
-| job.configuration.web-client.read-time-out     | int           | 10            | web client read time out configuration     |
-| job.configuration.web-client.write-time-out    | int           | 10            | web client write time out configuration    |
+| Property Name                                  | Property Type | Default Value                     | Description                                |
+|------------------------------------------------|---------------|-----------------------------------|--------------------------------------------|
+| cron.quartz.instance-name                      | String        | cron-scheduler                    | quartz instance name                       |
+| cron.quartz.thread-pool-class                  | String        | org.quartz.simpl.SimpleThreadPool | quartz thread pool implementation          |
+| cron.quartz.thread-name                        | String        | cron-scheduler                    | quartz thread name                         |
+| cron.quartz.thread-count                       | int           | 20                                | quartz thread count                        |
+| cron.quartz.thread-priority                    | int           | 5                                 | quartz thread priority                     |
+| cron.quartz.job-store-class                    | String        | org.quartz.simpl.RAMJobStore      | quartz job store implementation            |
+| cron.quartz.misfire-threshold                  | int           | 60000                             | quartz misfire threshold configuration     |
+| job.configuration.web-client.connect-time-out  | int           | 10                                | web client connect time out configuration  |
+| job.configuration.web-client.response-time-out | int           | 10                                | web client response time out configuration |
+| job.configuration.web-client.read-time-out     | int           | 10                                | web client read time out configuration     |
+| job.configuration.web-client.write-time-out    | int           | 10                                | web client write time out configuration    |
 
 ## Environment Variable
 
