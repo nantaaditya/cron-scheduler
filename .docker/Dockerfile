@@ -1,6 +1,4 @@
-FROM eclipse-temurin:17.0.11_9-jre-alpine
-
-MAINTAINER nantaaditya
+FROM eclipse-temurin:17.0.12_7-jre-alpine
 
 LABEL org.opencontainers.image.authors=nantaaditya
 LABEL org.opencontainers.image.url=https://hub.docker.com/repository/docker/nantaaditya/cron-scheduler/

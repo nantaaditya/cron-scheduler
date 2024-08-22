@@ -1,7 +1,5 @@
 FROM ibm-semeru-runtimes:open-17.0.10_7-jre-jammy
 
-MAINTAINER nantaaditya
-
 LABEL org.opencontainers.image.authors=nantaaditya
 LABEL org.opencontainers.image.url=https://hub.docker.com/repository/docker/nantaaditya/cron-scheduler/
 LABEL org.opencontainers.image.source=https://github.com/nantaaditya/cron-scheduler
