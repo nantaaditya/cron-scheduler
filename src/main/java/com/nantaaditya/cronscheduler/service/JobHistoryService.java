@@ -13,4 +13,6 @@ public interface JobHistoryService {
   Mono<List<JobHistoryResponseDTO>> findAll(
       @Valid @Min(value = 0, message = "NotValid") int page,
       @Valid @Min(value = 1, message = "NotValid") int size);
+
+  Mono<Boolean> removeObsoleteHistory(@Valid @Min(value = 1, message = "NotValid") int retentionDays);
 }
