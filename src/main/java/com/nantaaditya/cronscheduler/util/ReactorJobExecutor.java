@@ -14,6 +14,19 @@ public class ReactorJobExecutor {
 
   public static <T, R> Mono<T> execute(Function<R, Mono<T>> callback, R resource,
       Mono<T> fallback, Duration timeout) {
+    return execute(
+        callback,
+        resource,
+        error -> {
+          log.error("#REACTOR - executor error, ", error);
+          return fallback;
+        },
+        timeout
+    );
+  }
+
+  public static <T, R> Mono<T> execute(Function<R, Mono<T>> callback, R resource,
+      Function<Throwable, Mono<T>> fallback, Duration timeout) {
     return Mono.using(
         () -> {
           log.info("#REACTOR - executor start");
@@ -25,10 +38,7 @@ public class ReactorJobExecutor {
             .flatMap(callback)
             .timeout(timeout)
             .doOnError(TimeoutException.class, error -> log.error("#REACTOR - timeout when execute, ", error))
-            .onErrorResume(error -> {
-              log.error("#REACTOR - executor error, ", error);
-              return fallback;
-            }),
+            .onErrorResume(fallback),
         source -> log.info("#REACTOR - executor finish")
     );
   }

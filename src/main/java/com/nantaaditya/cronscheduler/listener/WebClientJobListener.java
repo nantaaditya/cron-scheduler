@@ -13,21 +13,26 @@ import com.nantaaditya.cronscheduler.properties.JobProperties;
 import com.nantaaditya.cronscheduler.repository.JobHistoryDetailRepository;
 import com.nantaaditya.cronscheduler.repository.JobHistoryRepository;
 import com.nantaaditya.cronscheduler.service.NotificationCallback;
+import com.nantaaditya.cronscheduler.util.IdGenerator;
 import com.nantaaditya.cronscheduler.util.JsonHelper;
 import com.nantaaditya.cronscheduler.util.ReactorEventBus;
 import com.nantaaditya.cronscheduler.util.ReactorJobExecutor;
-import io.netty.channel.ChannelOption;
+import io.netty.handler.logging.LogLevel;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.JobExecutionContext;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpHeaders;
@@ -43,6 +48,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.transport.logging.AdvancedByteBufFormat;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
@@ -74,13 +80,22 @@ public class WebClientJobListener {
   @Autowired
   private Logbook logbook;
 
+  @Value("${spring.application.name:cron-scheduler}")
+  private String clientId;
+
+  private WebClient webClient; //NOSONAR
+
   public static final String TRACE_ID_HEADER = "X-B3-TraceId";
   public static final String PARENT_TRACE_ID_HEADER = "X-B3-ParentSpanId";
   public static final String SPAN_ID_HEADER = "X-B3-SpanId";
   public static final String SAMPLED_HEADER = "X-B3-Sampled";
+  public static final String CLIENT_ID = "x-client-id";
+  public static final String REQUEST_ID = "x-request-id";
+  public static final String REQUEST_TIME = "x-request-time";
   public static final String DEFAULT_CLIENT_ERROR = "client error";
   public static final String EXECUTOR_TIMEOUT_ERROR = "executor timeout";
   public static final String NO_RESPONSE = "client no response";
+  public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
 
   @EventListener(ApplicationReadyEvent.class)
   public Disposable webClientJob() {
@@ -92,10 +107,19 @@ public class WebClientJobListener {
         .flatMap(tuples -> ReactorJobExecutor.execute(
             this::execute,
             tuples,
-            Mono.just(new JobResponse(tuples.getT1(), tuples.getT2(), getClientRequest(tuples.getT2()), EXECUTOR_TIMEOUT_ERROR)),
+            error -> {
+              log.error("#WebClientJob - executor error, ", error);
+              NotificationCallbackDTO notificationMessage = new NotificationCallbackDTO(
+                  tuples.getT2().jobExecutorId(),
+                  null,
+                  null,
+                  String.format("execute job %s error %s", tuples.getT2().jobExecutorId(), error.getMessage())
+              );
+              return notificationCallback.notifyFailed(notificationMessage)
+                  .then(Mono.just(new JobResponse(tuples.getT1(), tuples.getT2(), getClientRequest(tuples.getT2()), EXECUTOR_TIMEOUT_ERROR)));
+            },
             Duration.ofSeconds(configuration.getResponseTimeOut())
-          )
-        )
+        ))
         .flatMap(this::handleResponse)
         .subscribe(
             success -> log.info("#WebClientJob - success"),
@@ -109,7 +133,15 @@ public class WebClientJobListener {
         .doOnNext(tuples -> {
           continueContextTrace(eventContext);
           log.info("#JOB - starting {}", eventContext.jobExecutorId());
-        });
+        })
+        .onErrorResume(error -> handleError(
+                error,
+                String.format("create job history %s error %s", eventContext.jobExecutorId(), error),
+                tuples -> new NotificationCallbackDTO(
+                    tuples.getT2().jobExecutorId(), null, null, String.format("failed save job history error %s", error.getMessage())),
+                Tuples.of(new JobHistory(), eventContext)
+            )
+        );
   }
 
   private void continueContextTrace(EventContext eventContext) {
@@ -126,38 +158,38 @@ public class WebClientJobListener {
     ClientRequest clientRequest = getClientRequest(eventContext);
 
     return Mono.fromSupplier(() -> Tuples.of(jobHistory, createWebClient(clientRequest, eventContext)))
-      .flatMap(this::updateJobHistory)
-      .doOnNext(tuple -> log.info("#JOB - running {}", eventContext.jobExecutorId()))
-      .map(tuple -> composeRequest(tuple, clientRequest))
-      .flatMap(tuple -> call(tuple, eventContext, clientRequest))
-      .map(tuple -> new JobResponse(tuple.getT1(), eventContext, clientRequest, tuple.getT2()));
+        .flatMap(this::updateJobHistory)
+        .doOnNext(tuple -> log.info("#JOB - running {}", eventContext.jobExecutorId()))
+        .map(tuple -> composeRequest(tuple, clientRequest))
+        .flatMap(tuple -> call(tuple, eventContext, clientRequest))
+        .map(tuple -> new JobResponse(tuple.getT1(), eventContext, clientRequest, tuple.getT2()));
   }
 
   private WebClient createWebClient(ClientRequest clientRequest, EventContext eventContext) {
-    JobProperties.WebClient configuration = jobProperties.getWebClient();
-    int jobTimeOutInMillis = clientRequest.getTimeoutInMillis();
 
-    int connectTimeOut = jobTimeOutInMillis == 0 ?
-        configuration.getConnectTimeOut() * 1000: jobTimeOutInMillis;
-    Duration responseTimeOut = jobTimeOutInMillis == 0 ?
-        Duration.ofSeconds(configuration.getResponseTimeOut()) : Duration.ofMillis(jobTimeOutInMillis);
-    ReadTimeoutHandler readTimeoutHandler = jobTimeOutInMillis == 0 ?
-        new ReadTimeoutHandler(configuration.getReadTimeOut(), TimeUnit.SECONDS) : new ReadTimeoutHandler(jobTimeOutInMillis, TimeUnit.MILLISECONDS);
-    WriteTimeoutHandler writeTimeoutHandler = jobTimeOutInMillis == 0 ?
-        new WriteTimeoutHandler(configuration.getWriteTimeOut(), TimeUnit.SECONDS) : new WriteTimeoutHandler(jobTimeOutInMillis, TimeUnit.MILLISECONDS);
+    if (webClient == null) {
+      initializeWebClientBuilder();
+    }
 
-    HttpClient httpClient = HttpClient.create()
-        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeOut)
-        .responseTimeout(responseTimeOut)
-        .doOnConnected(conn -> conn
-            .addHandlerLast(readTimeoutHandler)
-            .addHandlerLast(writeTimeoutHandler)
-            .addHandlerFirst(new LogbookClientHandler(logbook))
-        );
-
-    return WebClient.builder()
+    return webClient.mutate()
         .baseUrl(clientRequest.getBaseUrl())
         .defaultHeaders(headers -> composeHttpHeaders(headers, clientRequest.getHeaders(), eventContext))
+        .build();
+  }
+
+  private void initializeWebClientBuilder() {
+    JobProperties.WebClient configuration = jobProperties.getWebClient();
+
+    HttpClient httpClient = HttpClient.create()
+        .wiretap("reactor.netty.http.client.HttpClient", LogLevel.DEBUG, AdvancedByteBufFormat.TEXTUAL)
+        .responseTimeout(Duration.ofSeconds(configuration.getResponseTimeOut()))
+        .doOnConnected(conn -> conn
+            .addHandlerLast(new ReadTimeoutHandler(configuration.getReadTimeOut(), TimeUnit.SECONDS))
+            .addHandlerLast(new WriteTimeoutHandler(configuration.getWriteTimeOut(), TimeUnit.SECONDS))
+            .addHandlerLast(new LogbookClientHandler(logbook))
+        );
+
+    webClient = WebClient.builder()
         .clientConnector(new ReactorClientHttpConnector(httpClient))
         .build();
   }
@@ -176,9 +208,11 @@ public class WebClientJobListener {
           if (StringUtils.hasLength(clientRequest.getApiPath())) {
             uriBuilder = uriBuilder.path(clientRequest.getFullApiPath());
           }
+
           if (clientRequest.getQueryParams() != null) {
             uriBuilder = uriBuilder.queryParams(clientRequest.getQueryParamMultiMap());
           }
+
           return uriBuilder.build();
         });
 
@@ -199,22 +233,22 @@ public class WebClientJobListener {
         .exchangeToMono(response -> {
           if (response.statusCode().is2xxSuccessful()) {
             return response
-              .bodyToMono(String.class)
-              .defaultIfEmpty(NO_RESPONSE)
-              .flatMap(responseBody -> notificationCallback.notifySuccess(
-                  new NotificationCallbackDTO(jobExecutorId, cronTrigger, clientRequest, responseBody)
-                )
-                .map(notificationResponse -> Tuples.of(tuples.getT1(), responseBody))
-              );
+                .bodyToMono(String.class)
+                .defaultIfEmpty(NO_RESPONSE)
+                .flatMap(responseBody -> notificationCallback.notifySuccess(
+                            new NotificationCallbackDTO(jobExecutorId, cronTrigger, clientRequest, responseBody)
+                        )
+                        .map(notificationResponse -> Tuples.of(tuples.getT1(), responseBody))
+                );
           } else {
             return response
-              .bodyToMono(String.class)
-              .defaultIfEmpty(NO_RESPONSE)
-              .flatMap(responseBody -> notificationCallback.notifyFailed(
-                  new NotificationCallbackDTO(jobExecutorId, cronTrigger, clientRequest, responseBody)
-                )
-                .map(notificationResponse -> Tuples.of(tuples.getT1(), responseBody))
-              );
+                .bodyToMono(String.class)
+                .defaultIfEmpty(NO_RESPONSE)
+                .flatMap(responseBody -> notificationCallback.notifyFailed(
+                            new NotificationCallbackDTO(jobExecutorId, cronTrigger, clientRequest, responseBody)
+                        )
+                        .map(notificationResponse -> Tuples.of(tuples.getT1(), responseBody))
+                );
           }
         })
         .onErrorReturn(Tuples.of(tuples.getT1(), DEFAULT_CLIENT_ERROR))
@@ -242,7 +276,14 @@ public class WebClientJobListener {
               JsonHelper.toJson(Map.of("clientResponse", responseBody))
           );
           return jobHistoryDetailRepository.save(jobHistoryDetail);
-        });
+        })
+        .onErrorResume(error -> handleError(
+            error,
+            String.format("failed save job history detail %s error %s", jobExecutorId, error),
+            detail -> new NotificationCallbackDTO(
+                jobExecutorId, null, null, String.format("failed save job history detail, error %s", error.getMessage())),
+            new JobHistoryDetail()
+        ));
   }
 
   private void composeHttpHeaders(HttpHeaders httpHeaders, Map<String, List<String>> headers, EventContext eventContext) {
@@ -251,6 +292,9 @@ public class WebClientJobListener {
     httpHeaders.put(PARENT_TRACE_ID_HEADER, List.of(eventContext.traceId()));
     httpHeaders.put(SPAN_ID_HEADER, List.of(eventContext.spanId()));
     httpHeaders.put(SAMPLED_HEADER, List.of("1"));
+    httpHeaders.put(CLIENT_ID, List.of(clientId));
+    httpHeaders.put(REQUEST_ID, List.of(IdGenerator.createId()));
+    httpHeaders.put(REQUEST_TIME, List.of(ZonedDateTime.now().format(DATE_TIME_FORMATTER)));
   }
 
   @SneakyThrows
@@ -278,5 +322,14 @@ public class WebClientJobListener {
     }
 
     return request;
+  }
+
+  private <T, S> Mono<T> handleError(Throwable error, String logMessage,
+      Function<T, NotificationCallbackDTO> messageFunction, T source) {
+    NotificationCallbackDTO notificationMessage = messageFunction.apply(source);
+
+    log.error("#WebClientJob - {}", logMessage);
+    return notificationCallback.notifyFailed(notificationMessage)
+        .then(Mono.empty());
   }
 }

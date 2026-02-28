@@ -27,4 +27,18 @@ class JobHistoryControllerTest extends BaseController {
         .doOnNext(result -> log.info("#RESPONSE - {}", result))
         .subscribe();
   }
+
+  @Test
+  @Order(2)
+  void removeObsoleteHistory() {
+    webTestClient.delete()
+        .uri("/api/job_history?retentionDays=1")
+        .exchange()
+        .expectStatus().isOk()
+        .returnResult(new ParameterizedTypeReference<Response<Boolean>>() {})
+        .getResponseBody()
+        .doOnNext(result -> log.info("#RESPONSE - {}", result))
+        .subscribe();
+  }
+
 }

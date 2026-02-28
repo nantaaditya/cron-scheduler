@@ -28,7 +28,10 @@ public class QuartzInitializerConfiguration {
 
     jobExecutorRepository.findAllByActiveTrue()
         .doOnNext(quartzUtil::createJob)
-        .subscribe(result -> log.info("#JOB - initialization completed"));
+        .subscribe(
+            result -> log.info("#JOB - initialization completed"),
+            error -> log.error("#JOB - initialization failed, {}", error)
+        );;
   }
 
   @PreDestroy
