@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -29,6 +30,7 @@ public class JobHistoryServiceImpl implements JobHistoryService {
   private final CustomJobHistoryRepository customJobHistoryRepository;
   private final JobHistoryRepository jobHistoryRepository;
   private final JobHistoryDetailRepository jobHistoryDetailRepository;
+  private final TransactionalOperator transactionalOperator;
 
   @Override
   public Mono<List<JobHistoryResponseDTO>> findAll(int page, int size) {
@@ -39,11 +41,14 @@ public class JobHistoryServiceImpl implements JobHistoryService {
 
   @Override
   public Mono<Boolean> removeObsoleteHistory(int retentionDays) {
-    return jobHistoryDetailRepository.deleteByCreatedDateBefore(LocalDate.now().minusDays(retentionDays))
+    LocalDate cutoffDate = LocalDate.now().minusDays(retentionDays);
+
+    return jobHistoryDetailRepository.deleteByJobHistoryCreatedDateBefore(cutoffDate)
         .doOnNext(jobHistoryDetailRecords -> log.info("#JobHistory - deleted job history detail {} record", jobHistoryDetailRecords))
-        .flatMap(jobHistoryDetailRecords -> jobHistoryRepository.deleteByCreatedDateBefore(LocalDate.now().minusDays(retentionDays)))
+        .then(jobHistoryRepository.deleteByCreatedDateBefore(cutoffDate))
         .doOnNext(jobHistoryRecords -> log.info("#JobHistory - deleted job history {} record", jobHistoryRecords))
-        .thenReturn(Boolean.TRUE);
+        .thenReturn(Boolean.TRUE)
+        .as(transactionalOperator::transactional);
   }
 
   private List<JobHistoryResponseDTO> toResponses(List<JobHistory> jobHistories) {

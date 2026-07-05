@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.cronscheduler.entity.ClientRequest;
 import com.nantaaditya.cronscheduler.entity.JobHistory;
 import com.nantaaditya.cronscheduler.entity.JobHistoryDetail;
-import com.nantaaditya.cronscheduler.model.constant.JobDataMapKey;
 import com.nantaaditya.cronscheduler.model.constant.JobStatus;
 import com.nantaaditya.cronscheduler.model.dto.EventContext;
 import com.nantaaditya.cronscheduler.model.dto.JobResponse;
@@ -17,6 +16,7 @@ import com.nantaaditya.cronscheduler.util.IdGenerator;
 import com.nantaaditya.cronscheduler.util.JsonHelper;
 import com.nantaaditya.cronscheduler.util.ReactorEventBus;
 import com.nantaaditya.cronscheduler.util.ReactorJobExecutor;
+import com.nantaaditya.cronscheduler.util.ReactorLogContext;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
@@ -30,7 +30,6 @@ import java.util.function.Function;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.JobExecutionContext;
-import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -103,53 +102,49 @@ public class WebClientJobListener {
 
     return reactorEventBus.consume(webClientJobSink, Schedulers.boundedElastic())
         .map(EventContext::from)
-        .flatMap(this::createJobHistory)
+        .flatMap(eventContext -> processJob(eventContext, configuration))
+        .subscribe(
+            success -> log.info("#WebClientJob - success"),
+            error -> log.error("#WebClientJob - error, {}", error)
+        );
+  }
+
+  private Mono<JobHistoryDetail> processJob(EventContext eventContext, JobProperties.WebClient configuration) {
+    return createJobHistory(eventContext)
         .flatMap(tuples -> ReactorJobExecutor.execute(
             this::execute,
             tuples,
             error -> {
-              log.error("#WebClientJob - executor error, ", error);
               NotificationCallbackDTO notificationMessage = new NotificationCallbackDTO(
                   tuples.getT2().jobExecutorId(),
                   null,
                   null,
                   String.format("execute job %s error %s", tuples.getT2().jobExecutorId(), error.getMessage())
               );
-              return notificationCallback.notifyFailed(notificationMessage)
+
+              return ReactorLogContext.syncMdc(() ->
+                      log.error("#WebClientJob - executor error, {}", error))
+                  .then(notificationCallback.notifyFailed(notificationMessage))
                   .then(Mono.just(new JobResponse(tuples.getT1(), tuples.getT2(), getClientRequest(tuples.getT2()), EXECUTOR_TIMEOUT_ERROR)));
             },
             Duration.ofSeconds(configuration.getResponseTimeOut())
         ))
         .flatMap(this::handleResponse)
-        .subscribe(
-            success -> log.info("#WebClientJob - success"),
-            error -> log.error("#WebClientJob - error, ", error)
-        );
+        .contextWrite(context -> ReactorLogContext.withJobContext(context, eventContext));
   }
 
   private Mono<Tuple2<JobHistory, EventContext>> createJobHistory(EventContext eventContext) {
-    return jobHistoryRepository.save(JobHistory.create(eventContext.jobExecutorId(), eventContext.cronTrigger()))
-        .map(jobHistory -> Tuples.of(jobHistory, eventContext))
-        .doOnNext(tuples -> {
-          continueContextTrace(eventContext);
-          log.info("#JOB - starting {}", eventContext.jobExecutorId());
-        })
+    return ReactorLogContext.syncMdc(Mono.defer(() ->
+            jobHistoryRepository.save(JobHistory.create(eventContext.jobExecutorId(), eventContext.cronTrigger()))
+                .map(jobHistory -> Tuples.of(jobHistory, eventContext))))
+        .doOnNext(tuples -> log.info("#JOB - starting {}", eventContext.jobExecutorId()))
         .onErrorResume(error -> handleError(
-                error,
                 String.format("create job history %s error %s", eventContext.jobExecutorId(), error),
                 tuples -> new NotificationCallbackDTO(
-                    tuples.getT2().jobExecutorId(), null, null, String.format("failed save job history error %s", error.getMessage())),
+                    tuples.getT2().jobExecutorId(), null, null, String.format("failed save job history error %s", error)),
                 Tuples.of(new JobHistory(), eventContext)
             )
         );
-  }
-
-  private void continueContextTrace(EventContext eventContext) {
-    String traceId = eventContext.traceId();
-    String spanId = eventContext.spanId();
-
-    MDC.put(JobDataMapKey.TRACE_ID, traceId);
-    MDC.put(JobDataMapKey.SPAN_ID, spanId);
   }
 
   private Mono<JobResponse> execute(Tuple2<JobHistory, EventContext> tuples) {
@@ -159,7 +154,9 @@ public class WebClientJobListener {
 
     return Mono.fromSupplier(() -> Tuples.of(jobHistory, createWebClient(clientRequest, eventContext)))
         .flatMap(this::updateJobHistory)
-        .doOnNext(tuple -> log.info("#JOB - running {}", eventContext.jobExecutorId()))
+        .flatMap(tuple -> ReactorLogContext.syncMdc(() ->
+                log.info("#JOB - running {}", eventContext.jobExecutorId()))
+            .thenReturn(tuple))
         .map(tuple -> composeRequest(tuple, clientRequest))
         .flatMap(tuple -> call(tuple, eventContext, clientRequest))
         .map(tuple -> new JobResponse(tuple.getT1(), eventContext, clientRequest, tuple.getT2()));
@@ -198,8 +195,9 @@ public class WebClientJobListener {
     JobHistory jobHistory = tuples.getT1();
     jobHistory.setStatus(JobStatus.RUNNING.name());
 
-    return jobHistoryRepository.save(jobHistory)
-        .map(jh -> Tuples.of(jh, tuples.getT2()));
+    return ReactorLogContext.syncMdc(Mono.defer(() ->
+        jobHistoryRepository.save(jobHistory)
+            .map(jh -> Tuples.of(jh, tuples.getT2()))));
   }
 
   private Tuple2<JobHistory, WebClient.RequestBodySpec> composeRequest(Tuple2<JobHistory, WebClient> tuples, ClientRequest clientRequest) {
@@ -252,10 +250,7 @@ public class WebClientJobListener {
           }
         })
         .onErrorReturn(Tuples.of(tuples.getT1(), DEFAULT_CLIENT_ERROR))
-        .doOnNext(tuple -> {
-          continueContextTrace(eventContext);
-          log.info("#JOB - result: {}", tuple.getT2());
-        });
+        .doOnNext(tuple -> log.info("#JOB - result: {}", tuple.getT2()));
   }
 
   private Mono<JobHistoryDetail> handleResponse(JobResponse response) {
@@ -265,20 +260,19 @@ public class WebClientJobListener {
     JobHistory jobHistory = response.jobHistory();
     String jobExecutorId = eventContext.jobExecutorId();
 
-    return Mono.just(jobHistory)
-        .doOnNext(jh -> jh.setStatus(JobStatus.FINISH.name()))
-        .flatMap(jobHistoryRepository::save)
-        .flatMap(jh -> {
-          JobHistoryDetail jobHistoryDetail = JobHistoryDetail.create(
-              jh.getId(),
-              clientRequest,
-              jobExecutorId,
-              JsonHelper.toJson(Map.of("clientResponse", responseBody))
-          );
-          return jobHistoryDetailRepository.save(jobHistoryDetail);
-        })
+    return ReactorLogContext.syncMdc(Mono.defer(() -> Mono.just(jobHistory)
+            .doOnNext(jh -> jh.setStatus(JobStatus.FINISH.name()))
+            .flatMap(jobHistoryRepository::save)
+            .flatMap(jh -> {
+              JobHistoryDetail jobHistoryDetail = JobHistoryDetail.create(
+                  jh.getId(),
+                  clientRequest,
+                  jobExecutorId,
+                  JsonHelper.toJson(Map.of("clientResponse", responseBody))
+              );
+              return jobHistoryDetailRepository.save(jobHistoryDetail);
+            })))
         .onErrorResume(error -> handleError(
-            error,
             String.format("failed save job history detail %s error %s", jobExecutorId, error),
             detail -> new NotificationCallbackDTO(
                 jobExecutorId, null, null, String.format("failed save job history detail, error %s", error.getMessage())),
@@ -324,12 +318,12 @@ public class WebClientJobListener {
     return request;
   }
 
-  private <T, S> Mono<T> handleError(Throwable error, String logMessage,
+  private <T> Mono<T> handleError(String logMessage,
       Function<T, NotificationCallbackDTO> messageFunction, T source) {
     NotificationCallbackDTO notificationMessage = messageFunction.apply(source);
 
-    log.error("#WebClientJob - {}", logMessage);
-    return notificationCallback.notifyFailed(notificationMessage)
+    return ReactorLogContext.syncMdc(() -> log.error("#WebClientJob - {}", logMessage))
+        .then(notificationCallback.notifyFailed(notificationMessage))
         .then(Mono.empty());
   }
 }

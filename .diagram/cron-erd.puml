@@ -1,0 +1,83 @@
+@startuml
+' hide the spot
+' hide circle
+' avoid problems with angled crows feet
+skinparam linetype ortho
+left to right direction
+
+entity "client_request" {
+  * id: varchar(64) <<generated>>
+  --
+  * created_by: varchar(50)
+  * created_date: date
+  * created_time: time
+  * modified_by: varchar(50)
+  * modified_date: date
+  * modified_time: time
+  * version: bigint
+  * client_name: varchar(255)
+  * http_method: varchar(10)
+  * base_url: varchar(255)
+  * api_path: varchar(255)
+  * path_params: jsonb
+  * query_params: jsonb
+  * headers: jsonb
+  * payload: jsonb
+  * timeout_in_millis: int {default 0}
+}
+
+entity "job_executor" {
+  * id: varchar(64) <<generated>>
+  --
+  * created_by: varchar(50)
+  * created_date: date
+  * created_time: time
+  * modified_by: varchar(50)
+  * modified_date: date
+  * modified_time: time
+  * version: bigint
+  * client_id: varchar(64)
+  * job_name: varchar(255)
+  * job_group: varchar(50)
+  * job_data: jsonb
+  * trigger_cron: varchar(255)
+  * active: boolean
+}
+
+entity "job_history" {
+  * id: varchar(64) <<generated>>
+  --
+  * created_by: varchar(50)
+  * created_date: date
+  * created_time: time
+  * modified_by: varchar(50)
+  * modified_date: date
+  * modified_time: time
+  * version: bigint
+  * job_executor_id: varchar(64)
+  * executed_date: date
+  * executed_time: time
+  * status: varchar(15)
+  * trigger_cron: varchar(255)
+}
+
+entity "job_history_detail" {
+  * id: varchar(64) <<generated>>
+  --
+  * created_by: varchar(50)
+  * created_date: date
+  * created_time: time
+  * modified_by: varchar(50)
+  * modified_date: date
+  * modified_time: time
+  * version: bigint
+  * job_history_id: varchar(64)
+  * job_executor_id: varchar(64)
+  * client_request: jsonb
+  * result_detail: jsonb
+}
+
+client_request }|.up.|{ job_executor
+job_executor }|.up.|{ job_history
+job_history ||.up.|{ job_history_detail
+@enduml

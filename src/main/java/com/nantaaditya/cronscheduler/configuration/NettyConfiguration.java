@@ -5,13 +5,13 @@ import com.nantaaditya.cronscheduler.util.IdGenerator;
 import com.nantaaditya.cronscheduler.util.TracerHelper;
 import io.micrometer.tracing.internal.EncodingUtils;
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.embedded.netty.NettyReactiveWebServerFactory;
 import org.springframework.boot.web.embedded.netty.NettyServerCustomizer;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
-import org.zalando.logbook.HttpHeaders;
+import org.zalando.logbook.HttpMessage;
 import org.zalando.logbook.HttpRequest;
 import org.zalando.logbook.Logbook;
 import org.zalando.logbook.LogbookCreator;
@@ -22,10 +22,10 @@ import org.zalando.logbook.netty.LogbookServerHandler;
 import reactor.netty.http.server.HttpServer;
 
 @Component
+@RequiredArgsConstructor
 public class NettyConfiguration implements WebServerFactoryCustomizer<NettyReactiveWebServerFactory> {
 
-  @Autowired
-  private TracerHelper tracerHelper;
+  private final TracerHelper tracerHelper;
 
   @Bean
   public Logbook logbook() {
@@ -40,10 +40,14 @@ public class NettyConfiguration implements WebServerFactoryCustomizer<NettyReact
         .map(HttpRequest::getHeaders)
         .map(httpHeaders -> httpHeaders.getFirst(WebClientJobListener.TRACE_ID_HEADER))
         .orElseGet(() -> EncodingUtils.fromLong(IdGenerator.createLongId()));
+    tracerHelper.setBaggage("reqId", correlationId);
 
-    HttpHeaders httpHeaders = request.getHeaders();
-    tracerHelper.setBaggage("traceId", httpHeaders.getFirst(WebClientJobListener.TRACE_ID_HEADER));
-    tracerHelper.setBaggage("spanId", httpHeaders.getFirst(WebClientJobListener.SPAN_ID_HEADER));
+    Optional.ofNullable(request)
+        .map(HttpMessage::getHeaders)
+        .ifPresent(httpHeaders -> {
+          tracerHelper.setBaggage("traceId", httpHeaders.getFirst(WebClientJobListener.TRACE_ID_HEADER));
+          tracerHelper.setBaggage("spanId", httpHeaders.getFirst(WebClientJobListener.SPAN_ID_HEADER));
+        });
     return correlationId;
   }
 
@@ -63,4 +67,3 @@ public class NettyConfiguration implements WebServerFactoryCustomizer<NettyReact
     }
   }
 }
-

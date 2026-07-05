@@ -46,14 +46,30 @@ public class JsonHelper {
 
   @SneakyThrows
   public static <T> T fromJson(Json json, TypeReference<T> typeReference) {
-    if (json == null) return null;
-    String jsonString = json.asString();
-    return objectMapper.readValue(jsonString, typeReference);
+    if (json == null || !StringUtils.hasLength(json.asString())) return null;
+    return objectMapper.readValue(json.asString(), typeReference);
   }
 
   @SneakyThrows
   public static <T> T fromJson(String json, Class<T> modelClass) {
     if (!StringUtils.hasLength(json)) return null;
     return objectMapper.readValue(json, modelClass);
+  }
+
+  @SneakyThrows
+  public static <T> T fromJson(String json, TypeReference<T> typeReference) {
+    if (!StringUtils.hasLength(json)) return null;
+    return objectMapper.readValue(json, typeReference);
+  }
+
+  public static <T> T convert(Object source, TypeReference<T> typeReference) {
+    if (source == null) return null;
+    return objectMapper.convertValue(source, typeReference);
+  }
+
+  @SneakyThrows
+  public static <T> T convert(byte[] source, TypeReference<T> typeReference) {
+    if (source == null || source.length == 0) return null;
+    return objectMapper.readValue(source, typeReference);
   }
 }
