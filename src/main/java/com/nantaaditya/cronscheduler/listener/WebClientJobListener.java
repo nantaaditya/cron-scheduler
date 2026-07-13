@@ -231,22 +231,22 @@ public class WebClientJobListener {
         .exchangeToMono(response -> {
           if (response.statusCode().is2xxSuccessful()) {
             return response
-                .bodyToMono(String.class)
-                .defaultIfEmpty(NO_RESPONSE)
-                .flatMap(responseBody -> notificationCallback.notifySuccess(
-                            new NotificationCallbackDTO(jobExecutorId, cronTrigger, clientRequest, responseBody)
-                        )
-                        .map(notificationResponse -> Tuples.of(tuples.getT1(), responseBody))
-                );
+              .bodyToMono(String.class)
+              .defaultIfEmpty(NO_RESPONSE)
+              .flatMap(responseBody -> notificationCallback.notifySuccess(
+                  new NotificationCallbackDTO(jobExecutorId, cronTrigger, clientRequest, responseBody)
+                )
+                .map(notificationResponse -> Tuples.of(tuples.getT1(), responseBody))
+              );
           } else {
             return response
-                .bodyToMono(String.class)
-                .defaultIfEmpty(NO_RESPONSE)
-                .flatMap(responseBody -> notificationCallback.notifyFailed(
-                            new NotificationCallbackDTO(jobExecutorId, cronTrigger, clientRequest, responseBody)
-                        )
-                        .map(notificationResponse -> Tuples.of(tuples.getT1(), responseBody))
-                );
+              .bodyToMono(String.class)
+              .defaultIfEmpty(NO_RESPONSE)
+              .flatMap(responseBody -> notificationCallback.notifyFailed(
+                    new NotificationCallbackDTO(jobExecutorId, cronTrigger, clientRequest, responseBody)
+                  )
+                  .map(notificationResponse -> Tuples.of(tuples.getT1(), responseBody))
+              );
           }
         })
         .onErrorReturn(Tuples.of(tuples.getT1(), DEFAULT_CLIENT_ERROR))
