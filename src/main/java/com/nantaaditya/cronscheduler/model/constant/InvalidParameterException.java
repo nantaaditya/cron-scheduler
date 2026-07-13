@@ -10,10 +10,10 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class InvalidParameterException extends RuntimeException {
 
-  private Map<String, List<String>> violations = new HashMap<>();
+  private final Map<String, List<String>> violations = new HashMap<>();
 
   public InvalidParameterException(Map<String, List<String>> violations, String message) {
     super(message);
-    this.violations = violations;
+    this.violations.putAll(violations);
   }
 }

@@ -6,4 +6,5 @@ public interface JobDataMapKey {
   String CRON_TRIGGER = "cronTrigger";
   String TRACE_ID = "traceId";
   String SPAN_ID = "spanId";
+  String REQUEST_ID = "reqId";
 }

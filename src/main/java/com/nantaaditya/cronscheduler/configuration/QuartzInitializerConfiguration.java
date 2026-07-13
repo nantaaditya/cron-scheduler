@@ -31,7 +31,7 @@ public class QuartzInitializerConfiguration {
         .subscribe(
             result -> log.info("#JOB - initialization completed"),
             error -> log.error("#JOB - initialization failed, {}", error)
-        );;
+        );
   }
 
   @PreDestroy

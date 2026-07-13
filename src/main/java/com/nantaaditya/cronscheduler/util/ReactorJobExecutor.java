@@ -17,18 +17,18 @@ public class ReactorJobExecutor {
     return execute(
         callback,
         resource,
-        error -> {
-          log.error("#REACTOR - executor error, ", error);
-          return fallback;
-        },
+        error -> ReactorLogContext.syncMdc(() ->
+                log.error("#REACTOR - executor error, {}", error))
+            .then(fallback),
         timeout
     );
   }
 
   public static <T, R> Mono<T> execute(Function<R, Mono<T>> callback, R resource,
       Function<Throwable, Mono<T>> fallback, Duration timeout) {
-    return Mono.using(
+    return Mono.deferContextual(contextView -> Mono.using(
         () -> {
+          ReactorLogContext.applyMdc(contextView);
           log.info("#REACTOR - executor start");
           log.debug("#REACTOR - request {} timeout {}", resource, timeout);
           return resource;
@@ -37,11 +37,15 @@ public class ReactorJobExecutor {
             .publishOn(Schedulers.single())
             .flatMap(callback)
             .timeout(timeout)
-            .doOnError(TimeoutException.class, error -> log.error("#REACTOR - timeout when execute, ", error))
+            .doOnError(TimeoutException.class, error -> {
+              ReactorLogContext.applyMdc(contextView);
+              log.error("#REACTOR - timeout when execute, {}", error.getMessage());
+            })
             .onErrorResume(fallback),
-        source -> log.info("#REACTOR - executor finish")
-    );
+        source -> {
+          ReactorLogContext.applyMdc(contextView);
+          log.info("#REACTOR - executor finish");
+        }
+    ));
   }
-
-
 }

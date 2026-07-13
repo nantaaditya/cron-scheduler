@@ -76,3 +76,4 @@ create table if not exists job_history_detail
 
 create index if not exists idx_clientrequest_name on client_request(client_name);
 create index if not exists idx_jobexecutor_name on job_executor(job_name);
+create index if not exists idx_jobhistorydetail_jobhistoryid on job_history_detail(job_history_id);

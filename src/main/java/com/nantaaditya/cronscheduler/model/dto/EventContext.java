@@ -3,6 +3,7 @@ package com.nantaaditya.cronscheduler.model.dto;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.cronscheduler.model.constant.JobDataMapKey;
+import com.nantaaditya.cronscheduler.util.IdGenerator;
 import java.util.Map;
 import lombok.SneakyThrows;
 import org.quartz.JobDataMap;
@@ -13,7 +14,8 @@ public record EventContext(
     String jobExecutorId,
     String cronTrigger,
     String traceId,
-    String spanId
+    String spanId,
+    String reqId
 ) {
 
   @SneakyThrows
@@ -31,7 +33,8 @@ public record EventContext(
         (String) jobDataMap.get(JobDataMapKey.JOB_EXECUTOR_ID),
         (String) jobDataMap.get(JobDataMapKey.CRON_TRIGGER),
         (String) jobDataMap.get(JobDataMapKey.TRACE_ID),
-        (String) jobDataMap.get(JobDataMapKey.SPAN_ID)
+        (String) jobDataMap.get(JobDataMapKey.SPAN_ID),
+        IdGenerator.createId()
     );
   }
 }
